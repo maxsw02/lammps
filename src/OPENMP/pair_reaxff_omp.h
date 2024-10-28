@@ -14,6 +14,7 @@
 #ifdef PAIR_CLASS
 // clang-format off
 PairStyle(reaxff/omp,PairReaxFFOMP);
+PairStyle(reax/c/omp,PairReaxFFOMP);
 // clang-format on
 #else
 

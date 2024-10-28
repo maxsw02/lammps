@@ -24,7 +24,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int DELTA = 10000;
+#define DELTA 10000
 
 /* ---------------------------------------------------------------------- */
 

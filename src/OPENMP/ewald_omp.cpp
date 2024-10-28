@@ -31,6 +31,8 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
+#define SMALL 0.00001
+
 /* ---------------------------------------------------------------------- */
 
 EwaldOMP::EwaldOMP(LAMMPS *lmp) : Ewald(lmp), ThrOMP(lmp, THR_KSPACE)

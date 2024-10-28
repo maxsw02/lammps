@@ -34,7 +34,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr double EPSILON = 1.0e-10;
+#define EPSILON 1.0e-10
 
 static const char cite_pair_mdpd[] =
   "pair mdpd command: doi:10.1063/1.4812366\n\n"

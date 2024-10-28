@@ -18,7 +18,10 @@
 #include "atom_masks.h"
 #include "domain_kokkos.h"
 #include "group.h"
+#include "error.h"
 #include "kokkos_few.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;

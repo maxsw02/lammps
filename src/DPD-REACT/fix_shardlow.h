@@ -21,10 +21,7 @@ FixStyle(shardlow,FixShardlow);
 #define LMP_FIX_SHARDLOW_H
 
 #include "fix.h"
-
-namespace random_external_state {
-using es_RNG_t = uint64_t;
-}
+#include "random_external_state.h"
 
 namespace LAMMPS_NS {
 

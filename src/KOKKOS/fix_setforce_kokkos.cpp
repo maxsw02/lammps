@@ -17,6 +17,7 @@
 #include "atom_kokkos.h"
 #include "update.h"
 #include "modify.h"
+#include "domain.h"
 #include "region.h"
 #include "input.h"
 #include "variable.h"
@@ -24,6 +25,8 @@
 #include "error.h"
 #include "atom_masks.h"
 #include "kokkos_base.h"
+
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;

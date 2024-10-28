@@ -148,7 +148,7 @@ FixNPHug::~FixNPHug()
   // delete pe compute
 
   if (peflag) modify->delete_compute(id_pe);
-  delete[] id_pe;
+  delete [] id_pe;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -161,9 +161,10 @@ void FixNPHug::init()
 
   // set pe ptr
 
-  pe = modify->get_compute_by_id(id_pe);
-  if (!pe)
-    error->all(FLERR, "Potential energy compute ID {} for fix {} does not exist", id_pe, style);
+  int icompute = modify->find_compute(id_pe);
+  if (icompute < 0)
+    error->all(FLERR,"Potential energy ID for fix nvt/nph/npt does not exist");
+  pe = modify->compute[icompute];
 }
 
 

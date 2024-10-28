@@ -29,7 +29,6 @@ class BondLepton : public Bond {
   BondLepton(class LAMMPS *);
   ~BondLepton() override;
   void compute(int, int) override;
-  void settings(int, char **) override;
   void coeff(int, char **) override;
   double equilibrium_distance(int) override;
   void write_restart(FILE *) override;
@@ -43,7 +42,6 @@ class BondLepton : public Bond {
   double *r0;
   int *type2expression;
   double *offset;
-  int auto_offset;
 
   virtual void allocate();
 

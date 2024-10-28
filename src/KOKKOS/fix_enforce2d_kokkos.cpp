@@ -122,7 +122,7 @@ void FixEnforce2DKokkos<DeviceType>::post_force(int /*vflag*/)
 
 
 template <class DeviceType>
-template <int OMEGA_FLAG, int ANGMOM_FLAG, int TORQUE_FLAG>
+template <int omega_flag, int angmom_flag, int torque_flag>
 KOKKOS_INLINE_FUNCTION
 void FixEnforce2DKokkos<DeviceType>::post_force_item( int i ) const
 {
@@ -130,17 +130,17 @@ void FixEnforce2DKokkos<DeviceType>::post_force_item( int i ) const
     v(i,2) = 0.0;
     f(i,2) = 0.0;
 
-    if (OMEGA_FLAG) {
+    if (omega_flag) {
       omega(i,0) = 0.0;
       omega(i,1) = 0.0;
     }
 
-    if (ANGMOM_FLAG) {
+    if (angmom_flag) {
       angmom(i,0) = 0.0;
       angmom(i,1) = 0.0;
     }
 
-    if (TORQUE_FLAG) {
+    if (torque_flag) {
       torque(i,0) = 0.0;
       torque(i,1) = 0.0;
     }

@@ -16,7 +16,6 @@
 
 #include "atom.h"
 #include "error.h"
-#include "label_map.h"
 #include "memory.h"
 #include "update.h"
 
@@ -24,8 +23,8 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int ONELINE = 128;
-static constexpr int DELTA = 1048576;
+#define ONELINE 128
+#define DELTA 1048576
 
 /* ---------------------------------------------------------------------- */
 
@@ -85,7 +84,7 @@ void DumpXYZ::init_style()
     typenames = new char*[ntypes+1];
     for (int itype = 1; itype <= ntypes; itype++) {
       typenames[itype] = new char[12];
-      snprintf(typenames[itype],12,"%d",itype);
+      sprintf(typenames[itype],"%d",itype);
     }
   }
 
@@ -121,32 +120,6 @@ int DumpXYZ::modify_param(int narg, char **arg)
     }
 
     return ntypes+1;
-  }
-
-  if (strcmp(arg[0],"types") == 0) {
-    if (narg < 2) error->all(FLERR,"Illegal dump_modify command");
-
-    if (typenames) {
-      for (int i = 1; i <= ntypes; i++)
-        delete [] typenames[i];
-
-      delete [] typenames;
-      typenames = nullptr;
-    }
-
-    if (strcmp(arg[1],"numeric") == 0) {
-      return 2;
-    } else if (strcmp(arg[1],"labels") == 0) {
-      if (!atom->labelmapflag)
-        error->all(FLERR, "Label map must be defined when using 'types labels'");
-    } else error->all(FLERR, "Illegal option for dump_modify 'types' keyword");
-
-    typenames = new char*[ntypes+1];
-    for (int itype = 1; itype <= ntypes; itype++) {
-      typenames[itype] = utils::strdup(atom->lmap->typelabel[itype-1]);
-    }
-
-    return 2;
   }
 
   return 0;
@@ -206,7 +179,7 @@ int DumpXYZ::convert_string(int n, double *mybuf)
       memory->grow(sbuf,maxsbuf,"dump:sbuf");
     }
 
-    offset += snprintf(&sbuf[offset], maxsbuf-offset, format, typenames[static_cast<int> (mybuf[m+1])],
+    offset += sprintf(&sbuf[offset], format, typenames[static_cast<int> (mybuf[m+1])],
                       mybuf[m+2], mybuf[m+3], mybuf[m+4]);
     m += size_one;
   }

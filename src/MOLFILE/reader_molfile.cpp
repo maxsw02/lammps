@@ -29,7 +29,8 @@ using namespace LAMMPS_NS;
 typedef MolfileInterface MFI;
 using namespace MathConst;
 
-static constexpr double SMALL = 1.0e-6;
+enum{ID,TYPE,X,Y,Z,VX,VY,VZ};
+#define SMALL 1.0e-6
 
 // true if the difference between two floats is "small".
 // cannot use fabsf() since it is not fully portable.
@@ -322,7 +323,7 @@ void ReaderMolfile::read_atoms(int n, int nfield, double **fields)
     ++nid;
 
     if (mf->property(MFI::P_TYPE,nid-1,buf) != MFI::P_NONE) {
-      mytype = std::stoi(buf);
+      mytype = atoi(buf);
     } else mytype = 0;
 
     for (m = 0; m < nfield; m++) {

@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------- */
 
 #include "npair_half_bin_newton_ssa.h"
-
 #include "nstencil_ssa.h"
 #include "nbin_ssa.h"
 #include "neigh_list.h"

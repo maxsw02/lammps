@@ -37,7 +37,8 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int DELTA = 4;
+#define MAXLINE 1024
+#define DELTA 4
 
 /* ---------------------------------------------------------------------- */
 

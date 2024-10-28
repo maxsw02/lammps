@@ -23,7 +23,6 @@
 
 #include "atom.h"
 #include "comm.h"
-#include "error.h"
 #include "force.h"
 #include "memory.h"
 #include "neigh_list.h"
@@ -119,7 +118,6 @@ template <int EVFLAG, int EFLAG, int NEWTON_PAIR> void PairEAMOpt::eval()
 
   int ntypes = atom->ntypes;
   int ntypes2 = ntypes * ntypes;
-  int beyond_rhomax = 0;
 
   auto *_noalias fast_alpha =
       (fast_alpha_t *) malloc((size_t) ntypes2 * (nr + 1) * sizeof(fast_alpha_t));
@@ -253,10 +251,7 @@ template <int EVFLAG, int EFLAG, int NEWTON_PAIR> void PairEAMOpt::eval()
     fp[i] = (coeff[0] * p + coeff[1]) * p + coeff[2];
     if (EFLAG) {
       double phi = ((coeff[3] * p + coeff[4]) * p + coeff[5]) * p + coeff[6];
-      if (rho[i] > rhomax) {
-        phi += fp[i] * (rho[i] - rhomax);
-        beyond_rhomax = 1;
-      }
+      if (rho[i] > rhomax) phi += fp[i] * (rho[i] - rhomax);
       phi *= scale[type[i]][type[i]];
       if (eflag_global) eng_vdwl += phi;
       if (eflag_atom) eatom[i] += phi;
@@ -365,16 +360,6 @@ template <int EVFLAG, int EFLAG, int NEWTON_PAIR> void PairEAMOpt::eval()
   fast_alpha = nullptr;
   free(fast_gamma);
   fast_gamma = nullptr;
-
-  if (EFLAG && (!exceeded_rhomax)) {
-    MPI_Allreduce(&beyond_rhomax, &exceeded_rhomax, 1, MPI_INT, MPI_SUM, world);
-    if (exceeded_rhomax) {
-      if (comm->me == 0)
-        error->warning(FLERR,
-                       "A per-atom density exceeded rhomax of EAM potential table - "
-                       "a linear extrapolation to the energy was made");
-    }
-  }
 
   if (vflag_fdotr) virial_fdotr_compute();
 }

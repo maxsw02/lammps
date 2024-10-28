@@ -31,7 +31,7 @@ using namespace MathEigen;
 typedef Jacobi<double, double *, double (*)[3], double const (*)[3]> Jacobi_v1;
 typedef Jacobi<double, double *, double **, double const *const *> Jacobi_v2;
 
-int MathEigen::jacobi3(double const mat[3][3], double *eval, double evec[3][3], int sort)
+int MathEigen::jacobi3(double const mat[3][3], double *eval, double evec[3][3])
 {
   // make copy of const matrix
 
@@ -44,15 +44,7 @@ int MathEigen::jacobi3(double const mat[3][3], double *eval, double evec[3][3], 
   // create instance of generic Jacobi class and get eigenvalues and -vectors
 
   Jacobi_v1 ecalc3(3, M, midx);
-  int ierror = 1;
-  if (sort == -1)
-    ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v1::SORT_DECREASING_EVALS);
-  else if (sort == 0)
-    ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v1::DO_NOT_SORT);
-  else if (sort == 1)
-    ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v1::SORT_INCREASING_EVALS);
-
-  if (ierror) return ierror;
+  int ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v1::SORT_DECREASING_EVALS);
 
   // transpose the evec matrix
 
@@ -62,7 +54,7 @@ int MathEigen::jacobi3(double const mat[3][3], double *eval, double evec[3][3], 
   return ierror;
 }
 
-int MathEigen::jacobi3(double const *const *mat, double *eval, double **evec, int sort)
+int MathEigen::jacobi3(double const *const *mat, double *eval, double **evec)
 {
   // make copy of const matrix
 
@@ -75,15 +67,7 @@ int MathEigen::jacobi3(double const *const *mat, double *eval, double **evec, in
   // create instance of generic Jacobi class and get eigenvalues and -vectors
 
   Jacobi_v2 ecalc3(3, M, midx);
-  int ierror = 1;
-  if (sort == -1)
-    ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v2::SORT_DECREASING_EVALS);
-  else if (sort == 0)
-    ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v2::DO_NOT_SORT);
-  else if (sort == 1)
-    ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v2::SORT_INCREASING_EVALS);
-
-  if (ierror) return ierror;
+  int ierror = ecalc3.Diagonalize(mat, eval, evec, Jacobi_v2::SORT_DECREASING_EVALS);
 
   // transpose the evec matrix
 

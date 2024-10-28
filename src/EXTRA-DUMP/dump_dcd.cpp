@@ -300,12 +300,12 @@ void DumpDCD::write_frame()
 
   nframes++;
   out_integer = nframes;
-  (void) fseek(fp,NFILE_POS,SEEK_SET);
+  fseek(fp,NFILE_POS,SEEK_SET);
   fwrite_int32(fp,out_integer);
   out_integer = update->ntimestep;
-  (void) fseek(fp,NSTEP_POS,SEEK_SET);
+  fseek(fp,NSTEP_POS,SEEK_SET);
   fwrite_int32(fp,out_integer);
-  (void) fseek(fp,0,SEEK_END);
+  fseek(fp,0,SEEK_END);
 }
 
 /* ---------------------------------------------------------------------- */

@@ -14,12 +14,14 @@
 #include "imbalance_neigh.h"
 
 #include "accelerator_kokkos.h"
+#include "atom.h"
 #include "comm.h"
 #include "error.h"
+#include "neighbor.h"
 
 using namespace LAMMPS_NS;
 
-static constexpr double BIG = 1.0e20;
+#define BIG 1.0e20
 
 /* -------------------------------------------------------------------- */
 

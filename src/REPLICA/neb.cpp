@@ -36,13 +36,15 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
-static constexpr int MAXLINE = 256;
-static constexpr int CHUNK = 1024;
-static constexpr int ATTRIBUTE_PERLINE = 4;
+#define MAXLINE 256
+#define CHUNK 1024
+#define ATTRIBUTE_PERLINE 4
 
 enum { DEFAULT, TERSE, VERBOSE };
 
-/* ---------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------
+   default constructor. NOTE: this is also called from the constructor below
+ ---------------------------------------------------------------------- */
 
 NEB::NEB(LAMMPS *lmp) : Command(lmp), fp(nullptr), all(nullptr), rdist(nullptr)
 {
@@ -198,7 +200,7 @@ void NEB::run()
   if (me == 0)
     color = 0;
   else
-    color = MPI_UNDEFINED;
+    color = 1;
   MPI_Comm_split(uworld, color, 0, &roots);
 
   auto fixes = modify->get_fix_by_style("^neb$");
@@ -430,7 +432,7 @@ void NEB::readfile(char *file, int flag)
   int i, nchunk, eofflag, nlines;
   tagint tag;
   char *eof, *start, *next, *buf;
-  char line[MAXLINE] = {'\0'};
+  char line[MAXLINE];
   double delx, dely, delz;
 
   if (me_universe == 0 && universe->uscreen)
@@ -608,20 +610,17 @@ void NEB::open(char *file)
 void NEB::print_status()
 {
   double fnorm2 = sqrt(update->minimize->fnorm_sqr());
+  double fmaxreplica;
+  MPI_Allreduce(&fnorm2, &fmaxreplica, 1, MPI_DOUBLE, MPI_MAX, roots);
   double fnorminf = update->minimize->fnorm_inf();
-  double fmaxreplica = 0.0;
-  double fmaxatom = 0.0;
+  double fmaxatom;
+  MPI_Allreduce(&fnorminf, &fmaxatom, 1, MPI_DOUBLE, MPI_MAX, roots);
 
-  if (me == 0) {
-    MPI_Allreduce(&fnorm2, &fmaxreplica, 1, MPI_DOUBLE, MPI_MAX, roots);
-    MPI_Allreduce(&fnorminf, &fmaxatom, 1, MPI_DOUBLE, MPI_MAX, roots);
-
-    if (print_mode == VERBOSE) {
-      freplica = new double[nreplica];
-      MPI_Allgather(&fnorm2, 1, MPI_DOUBLE, &freplica[0], 1, MPI_DOUBLE, roots);
-      fmaxatomInRepl = new double[nreplica];
-      MPI_Allgather(&fnorminf, 1, MPI_DOUBLE, &fmaxatomInRepl[0], 1, MPI_DOUBLE, roots);
-    }
+  if (print_mode == VERBOSE) {
+    freplica = new double[nreplica];
+    MPI_Allgather(&fnorm2, 1, MPI_DOUBLE, &freplica[0], 1, MPI_DOUBLE, roots);
+    fmaxatomInRepl = new double[nreplica];
+    MPI_Allgather(&fnorminf, 1, MPI_DOUBLE, &fmaxatomInRepl[0], 1, MPI_DOUBLE, roots);
   }
 
   double one[7];
@@ -706,7 +705,7 @@ void NEB::print_status()
       fflush(universe->ulogfile);
     }
   }
-  if ((me == 0) && (print_mode == VERBOSE)) {
+  if (print_mode == VERBOSE) {
     delete[] freplica;
     delete[] fmaxatomInRepl;
   }

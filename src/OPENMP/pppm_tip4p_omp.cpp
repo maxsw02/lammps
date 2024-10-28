@@ -39,10 +39,14 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace MathSpecial;
 
-static constexpr FFT_SCALAR ZEROF = 0.0;
+#ifdef FFT_SINGLE
+#define ZEROF 0.0f
+#else
+#define ZEROF 0.0
+#endif
 
-static constexpr double EPS_HOC = 1.0e-7;
-static constexpr int OFFSET = 16384;
+#define EPS_HOC 1.0e-7
+#define OFFSET 16384
 
 /* ---------------------------------------------------------------------- */
 

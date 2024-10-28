@@ -49,7 +49,7 @@ class PairSoft : public Pair {
   double **prefactor;
   double **cut;
 
-  virtual void allocate();
+  void allocate();
 };
 
 }    // namespace LAMMPS_NS

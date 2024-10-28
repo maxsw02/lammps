@@ -22,8 +22,6 @@
 #include "update.h"
 #include "variable.h"
 
-#include <cstring>
-
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
@@ -37,15 +35,10 @@ FixVector::FixVector(LAMMPS *lmp, int narg, char **arg) :
   nevery = utils::inumeric(FLERR, arg[3], false, lmp);
   if (nevery <= 0) error->all(FLERR, "Invalid fix vector every argument: {}", nevery);
 
-  nmaxval = MAXSMALLINT;
-  nindex = 0;
-
   // parse values
 
-  int iarg = 4;
   values.clear();
-
-  while (iarg < narg) {
+  for (int iarg = 4; iarg < narg; iarg++) {
     ArgInfo argi(arg[iarg]);
 
     value_t val;
@@ -54,25 +47,10 @@ FixVector::FixVector(LAMMPS *lmp, int narg, char **arg) :
     val.id = argi.get_name();
     val.val.c = nullptr;
 
-    if ((val.which == ArgInfo::UNKNOWN) || (argi.get_dim() > 1))
+    if ((val.which == ArgInfo::UNKNOWN) || (val.which == ArgInfo::NONE) || (argi.get_dim() > 1))
       error->all(FLERR, "Invalid fix vector argument: {}", arg[iarg]);
 
-    if (val.which == ArgInfo::NONE) break;
-
     values.push_back(val);
-    ++iarg;
-  }
-
-  while (iarg < narg) {
-
-    if (strcmp(arg[iarg], "nmax") == 0) {
-      if (iarg + 2 > narg) utils::missing_cmd_args(FLERR, "fix vector nmax", error);
-      nmaxval = utils::bnumeric(FLERR, arg[iarg + 1], false, lmp);
-      if (nmaxval < 1) error->all(FLERR, "Invalid nmax value");
-      iarg += 2;
-    } else {
-      error->all(FLERR, "Unknown fix vector keyword: {}", arg[iarg]);
-    }
   }
 
   // setup and error check
@@ -154,7 +132,7 @@ FixVector::FixVector(LAMMPS *lmp, int narg, char **arg) :
 
   vector = nullptr;
   array = nullptr;
-  ncount = ncountmax = nindex = 0;
+  ncount = ncountmax = 0;
   if (values.size() == 1)
     size_vector = 0;
   else
@@ -221,7 +199,6 @@ void FixVector::init()
   bigint finalstep = update->endstep / nevery * nevery;
   if (finalstep > update->endstep) finalstep -= nevery;
   ncountmax = (finalstep - initialstep) / nevery + 1;
-  if (ncountmax > nmaxval) ncountmax = nmaxval;
   if (values.size() == 1)
     memory->grow(vector, ncountmax, "vector:vector");
   else
@@ -244,18 +221,16 @@ void FixVector::end_of_step()
   // skip if not step which requires doing something
 
   if (update->ntimestep != nextstep) return;
-
-  // wrap around when vector/array is full
-  nindex = ncount % ncountmax;
+  if (ncount == ncountmax) error->all(FLERR, "Overflow of allocated fix vector storage");
 
   // accumulate results of computes,fixes,variables to local copy
   // compute/fix/variable may invoke computes so wrap with clear/add
 
   double *result;
   if (values.size() == 1)
-    result = &vector[nindex];
+    result = &vector[ncount];
   else
-    result = array[nindex];
+    result = array[ncount];
 
   modify->clearstep_compute();
 
@@ -315,9 +290,9 @@ void FixVector::end_of_step()
 
   ncount++;
   if (values.size() == 1)
-    size_vector = MIN(size_vector + 1, ncountmax);
+    size_vector++;
   else
-    size_array_rows = MIN(size_array_rows + 1, ncountmax);
+    size_array_rows++;
 }
 
 /* ----------------------------------------------------------------------
@@ -326,9 +301,7 @@ void FixVector::end_of_step()
 
 double FixVector::compute_vector(int i)
 {
-  int idx = i;
-  if (ncount >= ncountmax) idx = (i + ncount) % ncountmax;
-  return vector[idx];
+  return vector[i];
 }
 
 /* ----------------------------------------------------------------------
@@ -337,7 +310,5 @@ double FixVector::compute_vector(int i)
 
 double FixVector::compute_array(int i, int j)
 {
-  int idx = i;
-  if (ncount >= ncountmax) idx = (i + ncount) % ncountmax;
-  return array[idx][j];
+  return array[i][j];
 }

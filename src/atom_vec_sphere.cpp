@@ -19,6 +19,8 @@
 #include "math_const.h"
 #include "modify.h"
 
+#include <cstring>
+
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
@@ -30,6 +32,7 @@ AtomVecSphere::AtomVecSphere(LAMMPS *lmp) : AtomVec(lmp)
   molecular = Atom::ATOMIC;
   radvary = 0;
 
+  atom->sphere_flag = 1;
   atom->radius_flag = atom->rmass_flag = atom->omega_flag = atom->torque_flag = 1;
 
   // strings with peratom variables to include in each AtomVec method
@@ -57,10 +60,13 @@ AtomVecSphere::AtomVecSphere(LAMMPS *lmp) : AtomVec(lmp)
 
 void AtomVecSphere::process_args(int narg, char **arg)
 {
-  if (narg > 1) error->all(FLERR, "Illegal atom_style sphere command");
+  if (narg != 0 && narg != 1) error->all(FLERR, "Illegal atom_style sphere command");
 
   radvary = 0;
-  if (narg == 1) radvary = utils::logical(FLERR, arg[0], true, lmp);
+  if (narg == 1) {
+    radvary = utils::numeric(FLERR, arg[0], true, lmp);
+    if (radvary < 0 || radvary > 1) error->all(FLERR, "Illegal atom_style sphere command");
+  }
 
   // dynamic particle radius and mass must be communicated every step
 

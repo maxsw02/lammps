@@ -35,8 +35,10 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-enum { NONE, XYZ, XY, YZ, XZ };
-enum { ISO, ANISO, TRICLINIC };
+enum{NONE,XYZ,XY,YZ,XZ};
+enum{ISO,ANISO,TRICLINIC};
+
+#define MAX_LIFO_DEPTH 2     // 3 box0 arrays in *.h dimensioned to this
 
 /* ---------------------------------------------------------------------- */
 
@@ -317,6 +319,9 @@ FixBoxRelax::FixBoxRelax(LAMMPS *lmp, int narg, char **arg) :
   pflag = 1;
 
   dimension = domain->dimension;
+  nrigid = 0;
+  rfix = nullptr;
+
   current_lifo = 0;
 }
 
@@ -324,6 +329,8 @@ FixBoxRelax::FixBoxRelax(LAMMPS *lmp, int narg, char **arg) :
 
 FixBoxRelax::~FixBoxRelax()
 {
+  delete[] rfix;
+
   // delete temperature and pressure if fix created them
 
   if (tflag) modify->delete_compute(id_temp);
@@ -361,10 +368,20 @@ void FixBoxRelax::init()
   else kspace_flag = 0;
 
   // detect if any rigid fixes exist so rigid bodies move when box is remapped
+  // rfix[] = indices to each fix rigid
 
-  rfix.clear();
-  for (auto &ifix : modify->get_fix_list())
-    if (ifix->rigid_flag) rfix.push_back(ifix);
+  delete[] rfix;
+  nrigid = 0;
+  rfix = nullptr;
+
+  for (int i = 0; i < modify->nfix; i++)
+    if (modify->fix[i]->rigid_flag) nrigid++;
+  if (nrigid) {
+    rfix = new int[nrigid];
+    nrigid = 0;
+    for (int i = 0; i < modify->nfix; i++)
+      if (modify->fix[i]->rigid_flag) rfix[nrigid++] = i;
+  }
 
   // initial box dimensions
 
@@ -621,7 +638,9 @@ void FixBoxRelax::remap()
         domain->x2lamda(x[i],x[i]);
   }
 
-  for (auto &ifix : rfix) ifix->deform(0);
+  if (nrigid)
+    for (i = 0; i < nrigid; i++)
+      modify->fix[rfix[i]]->deform(0);
 
   // reset global and local box to new size/shape
 
@@ -659,7 +678,9 @@ void FixBoxRelax::remap()
         domain->lamda2x(x[i],x[i]);
   }
 
-  for (auto &ifix : rfix) ifix->deform(1);
+  if (nrigid)
+    for (i = 0; i < nrigid; i++)
+      modify->fix[rfix[i]]->deform(1);
 }
 
 /* ---------------------------------------------------------------------- */

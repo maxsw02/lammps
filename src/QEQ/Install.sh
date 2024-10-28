@@ -44,5 +44,3 @@ action fix_qeq_shielded.cpp
 action fix_qeq_shielded.h
 action fix_qeq_slater.cpp
 action fix_qeq_slater.h
-action fix_qeq_ctip.cpp
-action fix_qeq_ctip.h

@@ -22,14 +22,12 @@
 #include "modify.h"
 #include "update.h"
 
-#include <cstring>
-
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
 enum { NATIVE, REAL, METAL };    // LAMMPS units which MDI supports
 
-static constexpr int MAXELEMENT = 118;
+#define MAXELEMENT 118
 
 // prototype for non-class compare function for sorting QM IDs
 
@@ -37,10 +35,7 @@ static int compare_IDs(const int, const int, void *);
 
 /* ---------------------------------------------------------------------- */
 
-FixMDIQM::FixMDIQM(LAMMPS *lmp, int narg, char **arg) :
-    Fix(lmp, narg, arg), id_mcfix(nullptr), mc_active_ptr(nullptr), exclusion_group_ptr(nullptr),
-    elements(nullptr), qmIDs(nullptr), qm2owned(nullptr), eqm(nullptr), eqm_mine(nullptr),
-    tqm(nullptr), tqm_mine(nullptr), xqm(nullptr), xqm_mine(nullptr), fqm(nullptr)
+FixMDIQM::FixMDIQM(LAMMPS *lmp, int narg, char **arg) : Fix(lmp, narg, arg)
 {
   // check requirements for LAMMPS to work with MDI as an engine
   // atom IDs do not need to be consecutive
@@ -49,17 +44,6 @@ FixMDIQM::FixMDIQM(LAMMPS *lmp, int narg, char **arg) :
 
   if (atom->map_style == Atom::MAP_NONE)
     error->all(FLERR, "Fix mdi/qm requires an atom map be defined");
-
-  // initialize class members
-
-  plugin = 0;
-  natoms_exists = 0;
-  celldispl_exists = 0;
-  elements_exists = 0;
-  types_exists = 0;
-  stress_exists = 0;
-  pe_exists = 0;
-  keelec_exists = 0;
 
   // confirm LAMMPS is being run as a driver
 
@@ -74,7 +58,9 @@ FixMDIQM::FixMDIQM(LAMMPS *lmp, int narg, char **arg) :
   addflag = 1;
   every = 1;
   connectflag = 1;
+  elements = nullptr;
   mcflag = 0;
+  id_mcfix = nullptr;
 
   int iarg = 3;
   while (iarg < narg) {
@@ -191,6 +177,18 @@ FixMDIQM::FixMDIQM(LAMMPS *lmp, int narg, char **arg) :
 
   nqm = nqm_last = max_nqm = 0;
   nexclude = 0;
+
+  qmIDs = nullptr;
+  qm2owned = nullptr;
+
+  eqm = nullptr;
+  tqm = nullptr;
+  xqm = nullptr;
+  fqm = nullptr;
+
+  eqm_mine = nullptr;
+  tqm_mine = nullptr;
+  xqm_mine = nullptr;
 
   // per-atom data
 
@@ -1001,8 +999,9 @@ void FixMDIQM::send_box()
     ierr = MDI_Send(qm_cell, 9, MDI_DOUBLE, mdicomm);
     if (ierr) error->all(FLERR, "MDI: >CELL data");
 
-  } else if (domain->xperiodic == 1 || domain->yperiodic == 1 || domain->zperiodic == 1) {
-    error->all(FLERR, "MDI requires fully periodic or fully non-periodic system");
+  } else if (domain->xperiodic == 1 || domain->yperiodic == 1 ||
+             domain->zperiodic == 1) {
+    error->all(FLERR,"MDI requires fully periodic or fully non-periodic system");
   }
 }
 
@@ -1114,7 +1113,7 @@ void FixMDIQM::unit_conversions()
 
 int compare_IDs(const int i, const int j, void *ptr)
 {
-  tagint *ids = (tagint *) ptr;
+  tagint *ids = (int *) ptr;
   if (ids[i] < ids[j]) return -1;
   if (ids[i] > ids[j]) return 1;
   return 0;

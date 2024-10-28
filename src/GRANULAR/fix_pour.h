@@ -32,12 +32,11 @@ class FixPour : public Fix {
   void init() override;
   void setup_pre_exchange() override;
   void pre_exchange() override;
-  double compute_scalar() override;
   void reset_dt() override;
   void *extract(const char *, int &) override;
 
  private:
-  int ninsert, ntype, seed, initialize_flag;
+  int ninsert, ntype, seed;
   int mode, idnext, dstyle, npoly, rigidflag, shakeflag;
   int ignoreflag, ignoreline, ignoretri;
   double radius_one, radius_max;

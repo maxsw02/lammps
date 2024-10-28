@@ -92,7 +92,7 @@ class Pointers {
     atomKK(ptr->atomKK),
     memoryKK(ptr->memoryKK),
     python(ptr->python) {}
-  virtual ~Pointers() noexcept(false) {}
+  virtual ~Pointers() = default;
 
   // remove other default members
 

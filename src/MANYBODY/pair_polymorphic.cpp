@@ -38,6 +38,10 @@
 using namespace LAMMPS_NS;
 using namespace MathExtra;
 
+#define MAXLINE 1024
+#define DELTA 4
+
+
 /* ---------------------------------------------------------------------- */
 
 PairPolymorphic::PairParameters::PairParameters()

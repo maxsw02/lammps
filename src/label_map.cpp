@@ -14,7 +14,6 @@
 #include "label_map.h"
 
 #include "atom.h"
-#include "citeme.h"
 #include "comm.h"
 #include "error.h"
 #include "force.h"
@@ -23,28 +22,14 @@
 
 using namespace LAMMPS_NS;
 
-static const char cite_type_label_framework[] =
-    "Type Label Framework: https://doi.org/10.1021/acs.jpcb.3c08419\n\n"
-    "@Article{Gissinger24,\n"
-    " author = {Jacob R. Gissinger, Ilia Nikiforov, Yaser Afshar, Brendon Waters, Moon-ki Choi,"
-    " Daniel S. Karls, Alexander Stukowski, Wonpil Im, Hendrik Heinz, Axel Kohlmeyer, and Ellad B. Tadmor},\n"
-    " title = {Type Label Framework for Bonded Force Fields in LAMMPS},\n"
-    " journal = {J. Phys. Chem. B},\n"
-    " year =    2024,\n"
-    " volume =  128,\n"
-    " number =  13,\n"
-    " pages =   {3282--3297}\n"
-    "}\n\n";
-
 /* ---------------------------------------------------------------------- */
 
 LabelMap::LabelMap(LAMMPS *_lmp, int _natomtypes, int _nbondtypes, int _nangletypes,
                    int _ndihedraltypes, int _nimpropertypes) :
-    Pointers(_lmp), natomtypes(_natomtypes), nbondtypes(_nbondtypes), nangletypes(_nangletypes),
+    Pointers(_lmp),
+    natomtypes(_natomtypes), nbondtypes(_nbondtypes), nangletypes(_nangletypes),
     ndihedraltypes(_ndihedraltypes), nimpropertypes(_nimpropertypes)
 {
-  if (lmp->citeme) lmp->citeme->add(cite_type_label_framework);
-
   lmap2lmap.atom = lmap2lmap.bond = lmap2lmap.angle = lmap2lmap.dihedral = lmap2lmap.improper =
       nullptr;
   reset_type_labels();
@@ -369,35 +354,35 @@ void LabelMap::read_restart(FILE *fp)
   for (int i = 0; i < natomtypes; i++) {
     charlabel = read_string(fp);
     typelabel[i] = charlabel;
-    if (strlen(charlabel) > 0) typelabel_map[charlabel] = i + 1;
+    typelabel_map[charlabel] = i + 1;
     delete[] charlabel;
   }
 
   for (int i = 0; i < nbondtypes; i++) {
     charlabel = read_string(fp);
     btypelabel[i] = charlabel;
-    if (strlen(charlabel) > 0) btypelabel_map[charlabel] = i + 1;
+    btypelabel_map[charlabel] = i + 1;
     delete[] charlabel;
   }
 
   for (int i = 0; i < nangletypes; i++) {
     charlabel = read_string(fp);
     atypelabel[i] = charlabel;
-    if (strlen(charlabel) > 0) atypelabel_map[charlabel] = i + 1;
+    atypelabel_map[charlabel] = i + 1;
     delete[] charlabel;
   }
 
   for (int i = 0; i < ndihedraltypes; i++) {
     charlabel = read_string(fp);
     dtypelabel[i] = charlabel;
-    if (strlen(charlabel) > 0) dtypelabel_map[charlabel] = i + 1;
+    dtypelabel_map[charlabel] = i + 1;
     delete[] charlabel;
   }
 
   for (int i = 0; i < nimpropertypes; i++) {
     charlabel = read_string(fp);
     itypelabel[i] = charlabel;
-    if (strlen(charlabel) > 0) itypelabel_map[charlabel] = i + 1;
+    itypelabel_map[charlabel] = i + 1;
     delete[] charlabel;
   }
 }

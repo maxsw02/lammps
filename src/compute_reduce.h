@@ -37,11 +37,12 @@ class ComputeReduce : public Compute {
   double memory_usage() override;
 
  protected:
-  int mode, nvalues, input_mode;
+  int mode, nvalues;
   struct value_t {
     int which;
     int argindex;
     std::string id;
+    int flavor;
     union {
       class Compute *c;
       class Fix *f;

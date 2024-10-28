@@ -42,8 +42,8 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr double DELTAFLIP = 0.1;
-static constexpr double TILTMAX = 1.5;
+#define DELTAFLIP 0.1
+#define TILTMAX 1.5
 
 enum{NOBIAS,BIAS};
 enum{NONE,XYZ,XY,YZ,XZ};
@@ -54,12 +54,14 @@ enum{ISO,ANISO,TRICLINIC};
  ---------------------------------------------------------------------- */
 
 FixNPTCauchy::FixNPTCauchy(LAMMPS *lmp, int narg, char **arg) :
-    Fix(lmp, narg, arg), id_dilate(nullptr), irregular(nullptr), id_temp(nullptr),
-    id_press(nullptr), eta(nullptr), eta_dot(nullptr), eta_dotdot(nullptr), eta_mass(nullptr),
-    etap(nullptr), etap_dot(nullptr), etap_dotdot(nullptr), etap_mass(nullptr), id_store(nullptr),
-    init_store(nullptr)
+  Fix(lmp, narg, arg),
+  rfix(nullptr), id_dilate(nullptr), irregular(nullptr),
+  id_temp(nullptr), id_press(nullptr),
+  eta(nullptr), eta_dot(nullptr), eta_dotdot(nullptr),
+  eta_mass(nullptr), etap(nullptr), etap_dot(nullptr), etap_dotdot(nullptr),
+  etap_mass(nullptr), id_store(nullptr), init_store(nullptr)
 {
-  if (narg < 4) error->all(FLERR, "Illegal fix npt/cauchy command");
+  if (narg < 4) error->all(FLERR,"Illegal fix npt/cauchy command");
 
   dynamic_group_allow = 1;
   ecouple_flag = 1;
@@ -91,6 +93,8 @@ FixNPTCauchy::FixNPTCauchy(LAMMPS *lmp, int narg, char **arg) :
   omega_mass_flag = 0;
   etap_mass_flag = 0;
   flipflag = 1;
+  dipole_flag = 0;
+  dlm_flag = 0;
 
   tcomputeflag = 0;
   pcomputeflag = 0;
@@ -325,6 +329,14 @@ FixNPTCauchy::FixNPTCauchy(LAMMPS *lmp, int narg, char **arg) :
       if (iarg+2 > narg) error->all(FLERR,"Illegal fix npt/cauchy command");
       flipflag = utils::logical(FLERR,arg[iarg+1],false,lmp);
       iarg += 2;
+    } else if (strcmp(arg[iarg],"update") == 0) {
+      if (iarg+2 > narg) error->all(FLERR,"Illegal fix npt/cauchy command");
+      if (strcmp(arg[iarg+1],"dipole") == 0) dipole_flag = 1;
+      else if (strcmp(arg[iarg+1],"dipole/dlm") == 0) {
+        dipole_flag = 1;
+        dlm_flag = 1;
+      } else error->all(FLERR,"Illegal fix npt/cauchy command");
+      iarg += 2;
     } else if (strcmp(arg[iarg],"alpha") == 0) {
       alpha = utils::numeric(FLERR,arg[iarg+1],false,lmp);
       iarg += 2;
@@ -338,6 +350,20 @@ FixNPTCauchy::FixNPTCauchy(LAMMPS *lmp, int narg, char **arg) :
       fixedpoint[1] = utils::numeric(FLERR,arg[iarg+2],false,lmp);
       fixedpoint[2] = utils::numeric(FLERR,arg[iarg+3],false,lmp);
       iarg += 4;
+
+    // disc keyword is also parsed in fix/nh/sphere
+
+    } else if (strcmp(arg[iarg],"disc") == 0) {
+      iarg++;
+
+    // keywords erate, strain, and ext are also parsed in fix/nh/uef
+
+    } else if (strcmp(arg[iarg],"erate") == 0) {
+      iarg += 3;
+    } else if (strcmp(arg[iarg],"strain") == 0) {
+      iarg += 3;
+    } else if (strcmp(arg[iarg],"ext") == 0) {
+      iarg += 2;
 
     } else error->all(FLERR,"Illegal fix npt/cauchy command");
   }
@@ -428,6 +454,13 @@ FixNPTCauchy::FixNPTCauchy(LAMMPS *lmp, int narg, char **arg) :
       (p_start[0] != p_start[2] || p_stop[0] != p_stop[2] ||
        p_period[0] != p_period[2]))
     error->all(FLERR,"Invalid fix npt/cauchy pressure settings");
+
+  if (dipole_flag) {
+    if (!atom->sphere_flag)
+      error->all(FLERR,"Using update dipole flag requires atom style sphere");
+    if (!atom->mu_flag)
+      error->all(FLERR,"Using update dipole flag requires atom attribute mu");
+  }
 
   if ((tstat_flag && t_period <= 0.0) ||
       (p_flag[0] && p_period[0] <= 0.0) ||
@@ -538,6 +571,9 @@ FixNPTCauchy::FixNPTCauchy(LAMMPS *lmp, int narg, char **arg) :
     if (deviatoric_flag) size_vector += 1;
   }
 
+  nrigid = 0;
+  rfix = nullptr;
+
   if (pre_exchange_flag) irregular = new Irregular(lmp);
   else irregular = nullptr;
 
@@ -583,6 +619,8 @@ FixNPTCauchy::~FixNPTCauchy()
   if (copymode) return;
 
   delete[] id_dilate;
+  delete[] rfix;
+
   delete[] id_store;
   delete irregular;
 
@@ -652,16 +690,19 @@ void FixNPTCauchy::init()
 
   // set temperature and pressure ptrs
 
-  temperature = modify->get_compute_by_id(id_temp);
-  if (!temperature)
-    error->all(FLERR,"Temperature ID {} for fix npt/cauchy does not exist", id_temp);
+  int icompute = modify->find_compute(id_temp);
+  if (icompute < 0)
+    error->all(FLERR,"Temperature ID for fix npt/cauchy does not exist");
+  temperature = modify->compute[icompute];
 
   if (temperature->tempbias) which = BIAS;
   else which = NOBIAS;
 
   if (pstat_flag) {
-    pressure = modify->get_compute_by_id(id_press);
-    if (!pressure) error->all(FLERR,"Pressure ID {} for fix npt/cauchy does not exist", id_press);
+    icompute = modify->find_compute(id_press);
+    if (icompute < 0)
+      error->all(FLERR,"Pressure ID for fix npt/cauchy does not exist");
+    pressure = modify->compute[icompute];
   }
 
   // set timesteps and frequencies
@@ -718,10 +759,20 @@ void FixNPTCauchy::init()
   }
 
   // detect if any rigid fixes exist so rigid bodies move when box is remapped
+  // rfix[] = indices to each fix rigid
 
-  rfix.clear();
-  for (auto &ifix : modify->get_fix_list())
-    if (ifix->rigid_flag) rfix.push_back(ifix);
+  delete[] rfix;
+  nrigid = 0;
+  rfix = nullptr;
+
+  for (int i = 0; i < modify->nfix; i++)
+    if (modify->fix[i]->rigid_flag) nrigid++;
+  if (nrigid) {
+    rfix = new int[nrigid];
+    nrigid = 0;
+    for (int i = 0; i < modify->nfix; i++)
+      if (modify->fix[i]->rigid_flag) rfix[nrigid++] = i;
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -1070,7 +1121,9 @@ void FixNPTCauchy::remap()
         domain->x2lamda(x[i],x[i]);
   }
 
-  for (auto &ifix : rfix) ifix->deform(0);
+  if (nrigid)
+    for (i = 0; i < nrigid; i++)
+      modify->fix[rfix[i]]->deform(0);
 
   // reset global and local box to new size/shape
 
@@ -1215,7 +1268,9 @@ void FixNPTCauchy::remap()
         domain->lamda2x(x[i],x[i]);
   }
 
-  for (auto &ifix : rfix) ifix->deform(1);
+  if (nrigid)
+    for (i = 0; i < nrigid; i++)
+      modify->fix[rfix[i]]->deform(1);
 }
 
 /* ----------------------------------------------------------------------
@@ -1377,20 +1432,23 @@ int FixNPTCauchy::modify_param(int narg, char **arg)
     delete[] id_temp;
     id_temp = utils::strdup(arg[1]);
 
-    temperature = modify->get_compute_by_id(id_temp);
-    if (!temperature) error->all(FLERR,"Could not find fix_modify temperature ID {}", id_temp);
+    int icompute = modify->find_compute(arg[1]);
+    if (icompute < 0)
+      error->all(FLERR,"Could not find fix_modify temperature ID");
+    temperature = modify->compute[icompute];
 
     if (temperature->tempflag == 0)
-      error->all(FLERR,"Fix_modify temperature ID {} does not compute temperature", id_temp);
+      error->all(FLERR,"Fix_modify temperature ID does not compute temperature");
     if (temperature->igroup != 0 && comm->me == 0)
       error->warning(FLERR,"Temperature for fix modify is not for group all");
 
     // reset id_temp of pressure to new temperature ID
 
     if (pstat_flag) {
-      pressure = modify->get_compute_by_id(id_press);
-      if (!pressure) error->all(FLERR,"Pressure ID {} for fix modify does not exist", id_press);
-      pressure->reset_extra_compute_fix(id_temp);
+      icompute = modify->find_compute(id_press);
+      if (icompute < 0)
+        error->all(FLERR,"Pressure ID for fix modify does not exist");
+      modify->compute[icompute]->reset_extra_compute_fix(id_temp);
     }
 
     return 2;
@@ -1405,11 +1463,12 @@ int FixNPTCauchy::modify_param(int narg, char **arg)
     delete[] id_press;
     id_press = utils::strdup(arg[1]);
 
-    pressure = modify->get_compute_by_id(id_press);
-    if (!pressure) error->all(FLERR,"Could not find fix_modify pressure ID {}", id_press);
+    int icompute = modify->find_compute(arg[1]);
+    if (icompute < 0) error->all(FLERR,"Could not find fix_modify pressure ID");
+    pressure = modify->compute[icompute];
 
     if (pressure->pressflag == 0)
-      error->all(FLERR,"Fix_modify pressure ID {} does not compute pressure", id_press);
+      error->all(FLERR,"Fix_modify pressure ID does not compute pressure");
     return 2;
   }
 

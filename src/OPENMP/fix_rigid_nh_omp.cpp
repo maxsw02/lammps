@@ -30,6 +30,7 @@
 #include "kspace.h"
 #include "math_const.h"
 #include "math_extra.h"
+#include "modify.h"
 #include "rigid_const.h"
 #include "update.h"
 

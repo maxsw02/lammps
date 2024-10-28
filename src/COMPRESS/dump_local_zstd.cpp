@@ -112,7 +112,7 @@ void DumpLocalZstd::write_header(bigint ndump)
     }
     header += fmt::format("ITEM: {} {}\n", label, columns);
 
-    (void) writer.write(header.c_str(), header.length());
+    writer.write(header.c_str(), header.length());
   }
 }
 
@@ -121,7 +121,7 @@ void DumpLocalZstd::write_header(bigint ndump)
 void DumpLocalZstd::write_data(int n, double *mybuf)
 {
   if (buffer_flag == 1) {
-    (void) writer.write(mybuf, sizeof(char) * n);
+    writer.write(mybuf, sizeof(char) * n);
   } else {
     constexpr size_t VBUFFER_SIZE = 256;
     char vbuffer[VBUFFER_SIZE];
@@ -140,13 +140,13 @@ void DumpLocalZstd::write_data(int n, double *mybuf)
         }
 
         if (written > 0) {
-          (void) writer.write(vbuffer, written);
+          writer.write(vbuffer, written);
         } else if (written < 0) {
           error->one(FLERR, "Error while writing dump local/gz output");
         }
         m++;
       }
-      (void) writer.write("\n", 1);
+      writer.write("\n", 1);
     }
   }
 }

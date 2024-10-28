@@ -37,6 +37,7 @@
 #include "update.h"
 
 #include <cstring>
+#include <vector>
 
 using namespace LAMMPS_NS;
 using namespace Granular_NS;
@@ -400,8 +401,8 @@ void PairGranular::init_style()
 {
   // error and warning checks
 
-  if (!atom->radius_flag || !atom->rmass_flag || !atom->omega_flag)
-    error->all(FLERR,"Pair granular requires atom attributes radius, rmass, omega");
+  if (!atom->radius_flag || !atom->rmass_flag)
+    error->all(FLERR,"Pair granular requires atom attributes radius, rmass");
   if (comm->ghost_velocity == 0)
     error->all(FLERR,"Pair granular requires ghost atoms store velocity");
 
@@ -769,7 +770,7 @@ double PairGranular::single(int i, int j, int itype, int jtype,
 
   // apply forces & torques
   // Calculate normal component, normalized by r
-  fforce = model->Fntot * model->rinv;
+  fforce = model->Fnormal * model->rinv;
 
   // set single_extra quantities
   svector[0] = model->fs[0];

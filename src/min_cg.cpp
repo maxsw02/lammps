@@ -25,7 +25,7 @@ using namespace LAMMPS_NS;
 
 // EPS_ENERGY = minimum normalization for energy tolerance
 
-static constexpr double EPS_ENERGY = 1.0e-8;
+#define EPS_ENERGY 1.0e-8
 
 /* ---------------------------------------------------------------------- */
 

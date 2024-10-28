@@ -26,29 +26,33 @@ AtomVecSPH::AtomVecSPH(LAMMPS *lmp) : AtomVec(lmp)
   molecular = Atom::ATOMIC;
   mass_type = PER_TYPE;
   forceclearflag = 1;
-
   atom->esph_flag = 1;
   atom->rho_flag = 1;
   atom->cv_flag = 1;
   atom->vest_flag = 1;
+  atom->entropy_flag = 1;
+  atom->entropyest_flag = 1;
+  atom->dentropy_flag = 1;
+  atom->temperature_flag = 1;
 
   // strings with peratom variables to include in each AtomVec method
   // strings cannot contain fields in corresponding AtomVec default strings
   // order of fields in a string does not matter
   // except: fields_data_atom & fields_data_vel must match data file
 
-  fields_grow = {"rho", "drho", "esph", "desph", "cv", "vest"};
-  fields_copy = {"rho", "drho", "esph", "desph", "cv", "vest"};
-  fields_comm = {"rho", "esph", "vest"};
-  fields_comm_vel = {"rho", "esph", "vest"};
-  fields_reverse = {"drho", "desph"};
-  fields_border = {"rho", "esph", "cv", "vest"};
-  fields_border_vel = {"rho", "esph", "cv", "vest"};
-  fields_exchange = {"rho", "esph", "cv", "vest"};
-  fields_restart = {"rho", "esph", "cv", "vest"};
-  fields_create = {"rho", "esph", "cv", "vest", "desph", "drho"};
-  fields_data_atom = {"id", "type", "rho", "esph", "cv", "x"};
+  fields_grow = {"rho", "drho", "esph", "desph", "cv", "vest", "entropy", "dentropy", "entropyest", "temperature"};
+  fields_copy = {"rho", "drho", "esph", "desph", "cv", "vest", "entropy", "dentropy", "entropyest", "temperature"};
+  fields_comm = {"rho", "esph", "vest", "entropy","entropyest"};
+  fields_comm_vel = {"rho", "esph", "vest","entropy","entropyest"};
+  fields_reverse = {"drho", "desph","dentropy"};
+  fields_border = {"rho", "esph", "cv", "vest","entropyest","entropy"};
+  fields_border_vel = {"rho", "esph", "cv", "vest","entropyest","entropy"};
+  fields_exchange = {"rho", "esph", "cv", "vest","entropyest","entropy"};
+  fields_restart = {"rho", "esph", "cv", "vest","entropyest","entropy"};
+  fields_create = {"rho", "esph", "cv", "vest", "desph", "drho", "entropy", "dentropy", "entropyest", "temperature"};
+  fields_data_atom = {"id", "type", "rho", "esph", "cv","entropy", "x"};
   fields_data_vel = {"id", "v"};
+
 
   setup_fields();
 }
@@ -66,6 +70,10 @@ void AtomVecSPH::grow_pointers()
   desph = atom->desph;
   cv = atom->cv;
   vest = atom->vest;
+  entropy = atom->entropy;
+  entropyest = atom->entropyest;
+  dentropy = atom->dentropy;
+  temperature = atom->temperature;
 }
 
 /* ----------------------------------------------------------------------
@@ -77,6 +85,7 @@ void AtomVecSPH::force_clear(int n, size_t nbytes)
 {
   memset(&desph[n], 0, nbytes);
   memset(&drho[n], 0, nbytes);
+  memset(&dentropy[n], 0, nbytes);
 }
 
 /* ----------------------------------------------------------------------
@@ -100,6 +109,10 @@ void AtomVecSPH::data_atom_post(int ilocal)
   vest[ilocal][2] = 0.0;
   desph[ilocal] = 0.0;
   drho[ilocal] = 0.0;
+
+  dentropy[ilocal] = 0.0;
+  entropyest[ilocal] = 0.0;
+  temperature[ilocal] = 0.0;
 }
 
 /* ----------------------------------------------------------------------
@@ -114,6 +127,10 @@ int AtomVecSPH::property_atom(const std::string &name)
   if (name == "esph") return 2;
   if (name == "desph") return 3;
   if (name == "cv") return 4;
+
+  if (name == "dentropy") return 5;
+  if (name == "entropy") return 6;
+  if (name == "temperature") return 7;
   return -1;
 }
 
@@ -168,5 +185,29 @@ void AtomVecSPH::pack_property_atom(int index, double *buf, int nvalues, int gro
         buf[n] = 0.0;
       n += nvalues;
     }
-  }
+  } else if (index == 5) {
+    for (int i = 0; i < nlocal; i++) {
+      if (mask[i] & groupbit)
+        buf[n] = dentropy[i];
+      else
+        buf[n] = 0.0;
+      n += nvalues;
+    }
+  } else if (index == 6) {
+    for (int i = 0; i < nlocal; i++) {
+      if (mask[i] & groupbit)
+        buf[n] = entropy[i];
+      else
+        buf[n] = 0.0;
+      n += nvalues;
+    } 
+    }else if (index == 7) {
+    for (int i = 0; i < nlocal; i++) {
+      if (mask[i] & groupbit)
+        buf[n] = temperature[i];
+      else
+        buf[n] = 0.0;
+      n += nvalues;
+    }
+}
 }

@@ -373,7 +373,7 @@ void PairE3B::allocateE3B()
 void PairE3B::settings(int narg, char **arg)
 {
   if (narg != 1) error->all(FLERR, "Illegal pair_style command");
-  typeO_str = arg[0];
+  typeO = utils::inumeric(FLERR, arg[0], false, lmp);
 }
 
 /* ----------------------------------------------------------------------
@@ -386,9 +386,6 @@ void PairE3B::coeff(int narg, char **arg)
 
   //1=* 2=* 3/4=1st keyword/value
   if (narg < 4) error->all(FLERR, "There must be at least one keyword given to pair_coeff");
-
-  if (typeO_str.size() > 0)
-    typeO = utils::expand_type_int(FLERR, typeO_str, Atom::ATOM, lmp, true);
 
   // clear setflag since coeff() called once with I,J = * *
   int n = atom->ntypes;

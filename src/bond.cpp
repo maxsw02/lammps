@@ -36,13 +36,12 @@ int Bond::instance_total = 0;
    a particular bond style can override this
 ------------------------------------------------------------------------- */
 
-Bond::Bond(LAMMPS *_lmp) :
-    Pointers(_lmp), setflag(nullptr), virial{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, eatom(nullptr),
-    vatom(nullptr), svector(nullptr)
+Bond::Bond(LAMMPS *_lmp) : Pointers(_lmp)
 {
   instance_me = instance_total++;
 
   energy = 0.0;
+  virial[0] = virial[1] = virial[2] = virial[3] = virial[4] = virial[5] = 0.0;
   writedata = 1;
   reinitflag = 1;
 
@@ -54,13 +53,18 @@ Bond::Bond(LAMMPS *_lmp) :
   partial_flag = 0;
 
   single_extra = 0;
+  svector = nullptr;
 
   maxeatom = maxvatom = 0;
+  eatom = nullptr;
+  vatom = nullptr;
+  setflag = nullptr;
 
   execution_space = Host;
   datamask_read = ALL_MASK;
   datamask_modify = ALL_MASK;
-  copymode = kokkosable = 0;
+
+  copymode = 0;
 }
 
 /* ---------------------------------------------------------------------- */

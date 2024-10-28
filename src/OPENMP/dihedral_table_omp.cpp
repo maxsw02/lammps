@@ -34,6 +34,9 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace MathExtra;
 
+#define TOLERANCE 0.05
+#define SMALL     0.001
+
 // --------------------------------------------
 // ------- Calculate the dihedral angle -------
 // --------------------------------------------

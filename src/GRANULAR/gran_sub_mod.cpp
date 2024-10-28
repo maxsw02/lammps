@@ -21,8 +21,7 @@
 ----------------------------------------------------------------------- */
 
 #include "gran_sub_mod.h"
-
-#include <cmath>
+#include "error.h"
 
 using namespace LAMMPS_NS;
 using namespace Granular_NS;

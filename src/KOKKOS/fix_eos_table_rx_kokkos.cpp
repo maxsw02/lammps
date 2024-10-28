@@ -25,6 +25,8 @@
 #include <cmath>
 #include "atom_masks.h"
 
+#define MAXLINE 1024
+
 #ifdef DBL_EPSILON
   #define MY_EPSILON (10.0*DBL_EPSILON)
 #else

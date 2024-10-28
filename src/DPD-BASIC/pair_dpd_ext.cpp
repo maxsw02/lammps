@@ -13,7 +13,7 @@
 ------------------------------------------------------------------------- */
 
 /* ----------------------------------------------------------------------
-  Contributing authors: Martin Svoboda (ICPF, UJEP), Martin Lisal (ICPF, UJEP)
+  Contributing authors: Martin Svoboda (ICPF, UJEP), Martin Lísal (ICPF, UJEP)
   based on pair style dpd by: Kurt Smith (U Pittsburgh)
 ------------------------------------------------------------------------- */
 
@@ -33,7 +33,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr double EPSILON = 1.0e-10;
+#define EPSILON 1.0e-10
 
 /* ---------------------------------------------------------------------- */
 

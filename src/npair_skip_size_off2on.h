@@ -13,19 +13,11 @@
 
 #ifdef NPAIR_CLASS
 // clang-format off
-typedef NPairSkipSizeOff2onTemp<0> NPairSkipSizeOff2on;
 NPairStyle(skip/size/off2on,
            NPairSkipSizeOff2on,
            NP_SKIP | NP_SIZE | NP_OFF2ON | NP_HALF |
            NP_NSQ | NP_BIN | NP_MULTI | NP_MULTI_OLD |
            NP_NEWTON | NP_NEWTOFF | NP_ORTHO | NP_TRI);
-
-typedef NPairSkipSizeOff2onTemp<1> NPairSkipTrimSizeOff2on;
-NPairStyle(skip/trim/size/off2on,
-           NPairSkipTrimSizeOff2on,
-           NP_SKIP | NP_SIZE | NP_OFF2ON | NP_HALF |
-           NP_NSQ | NP_BIN | NP_MULTI | NP_MULTI_OLD |
-           NP_NEWTON | NP_NEWTOFF | NP_ORTHO | NP_TRI | NP_TRIM);
 // clang-format on
 #else
 
@@ -36,10 +28,9 @@ NPairStyle(skip/trim/size/off2on,
 
 namespace LAMMPS_NS {
 
-template<int TRIM>
-class NPairSkipSizeOff2onTemp : public NPair {
+class NPairSkipSizeOff2on : public NPair {
  public:
-  NPairSkipSizeOff2onTemp(class LAMMPS *);
+  NPairSkipSizeOff2on(class LAMMPS *);
   void build(class NeighList *) override;
 };
 

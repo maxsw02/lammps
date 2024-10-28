@@ -76,7 +76,6 @@ NeighRequest::NeighRequest(LAMMPS *_lmp) : Pointers(_lmp)
   skip = 0;
   iskip = nullptr;
   ijskip = nullptr;
-  molskip = REGULAR;
 
   // only set when command = 1;
 
@@ -184,8 +183,6 @@ int NeighRequest::identical(NeighRequest *other)
 
 int NeighRequest::same_skip(NeighRequest *other)
 {
-  if (molskip != other->molskip) return 0;
-
   const int ntypes = atom->ntypes;
   int same = 1;
 
@@ -308,12 +305,6 @@ void NeighRequest::set_skip(int *_iskip, int **_ijskip)
   skip = 1;
   iskip = _iskip;
   ijskip = _ijskip;
-}
-
-void NeighRequest::set_molskip(int _molskip)
-{
-  skip = 1;
-  molskip = _molskip;
 }
 
 void NeighRequest::enable_full()

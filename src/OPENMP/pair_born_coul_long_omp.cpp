@@ -17,7 +17,6 @@
 
 #include "atom.h"
 #include "comm.h"
-#include "ewald_const.h"
 #include "force.h"
 #include "neigh_list.h"
 #include "suffix.h"
@@ -25,9 +24,15 @@
 #include <cmath>
 
 #include "omp_compat.h"
-
 using namespace LAMMPS_NS;
-using namespace EwaldConst;
+
+#define EWALD_F   1.12837917
+#define EWALD_P   0.3275911
+#define A1        0.254829592
+#define A2       -0.284496736
+#define A3        1.421413741
+#define A4       -1.453152027
+#define A5        1.061405429
 
 /* ---------------------------------------------------------------------- */
 

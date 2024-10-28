@@ -27,14 +27,13 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr double LB_FACTOR = 1.5;
-static constexpr int DELTA = 8192;
+#define LB_FACTOR 1.5
+#define DELTA 8192
 
 /* ---------------------------------------------------------------------- */
 
 FixBondHistory::FixBondHistory(LAMMPS *lmp, int narg, char **arg) :
-    Fix(lmp, narg, arg), bondstore(nullptr), bondtype_orig(nullptr), bondstore_comp(nullptr),
-    bondstore_orig(nullptr), id_fix(nullptr), id_array(nullptr)
+    Fix(lmp, narg, arg), bondstore(nullptr), id_fix(nullptr), id_array(nullptr)
 
 {
   if (narg != 5) error->all(FLERR, "Illegal fix bond/history command");
@@ -54,6 +53,7 @@ FixBondHistory::FixBondHistory(LAMMPS *lmp, int narg, char **arg) :
   updated_bond_flag = 0;
 
   maxbond = 0;
+  allocate();
 }
 
 /* ---------------------------------------------------------------------- */
@@ -65,8 +65,6 @@ FixBondHistory::~FixBondHistory()
   delete[] id_array;
 
   memory->destroy(bondstore);
-  memory->destroy(bondstore_comp);
-  memory->destroy(bondtype_orig);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -99,7 +97,7 @@ void FixBondHistory::post_constructor()
 
 void FixBondHistory::update_atom_value(int i, int m, int idata, double value)
 {
-  if (idata >= ndata || m > nbond) error->one(FLERR, "Index exceeded in fix bond history");
+  if (idata >= ndata || m > nbond) error->all(FLERR, "Index exceeded in fix bond history");
   atom->darray[index][i][m * ndata + idata] = value;
 }
 
@@ -107,7 +105,7 @@ void FixBondHistory::update_atom_value(int i, int m, int idata, double value)
 
 double FixBondHistory::get_atom_value(int i, int m, int idata)
 {
-  if (idata >= ndata || m > nbond) error->one(FLERR, "Index exceeded in fix bond history");
+  if (idata >= ndata || m > nbond) error->all(FLERR, "Index exceeded in fix bond history");
   return atom->darray[index][i][m * ndata + idata];
 }
 
@@ -137,7 +135,6 @@ void FixBondHistory::pre_exchange()
 
   int nlocal = atom->nlocal;
   tagint **bond_atom = atom->bond_atom;
-  int **bond_type = atom->bond_type;
   int *num_bond = atom->num_bond;
   tagint *tag = atom->tag;
 
@@ -145,12 +142,12 @@ void FixBondHistory::pre_exchange()
     i1 = bondlist[n][0];
     i2 = bondlist[n][1];
 
-    // skip bond if already broken or not allocated
-    if (bondlist[n][2] <= 0 || !setflag[bondlist[n][2]]) { continue; }
+    // skip bond if already broken
+    if (bondlist[n][2] <= 0) { continue; }
 
     if (i1 < nlocal) {
       for (m = 0; m < num_bond[i1]; m++) {
-        if (bond_atom[i1][m] == tag[i2] && setflag[bond_type[i1][m]]) {
+        if (bond_atom[i1][m] == tag[i2]) {
           for (idata = 0; idata < ndata; idata++) {
             stored[i1][m * ndata + idata] = bondstore[n][idata];
           }
@@ -160,7 +157,7 @@ void FixBondHistory::pre_exchange()
 
     if (i2 < nlocal) {
       for (m = 0; m < num_bond[i2]; m++) {
-        if (bond_atom[i2][m] == tag[i1] && setflag[bond_type[i2][m]]) {
+        if (bond_atom[i2][m] == tag[i1]) {
           for (idata = 0; idata < ndata; idata++) {
             stored[i2][m * ndata + idata] = bondstore[n][idata];
           }
@@ -182,21 +179,17 @@ void FixBondHistory::allocate()
   else
     maxbond = static_cast<int>(LB_FACTOR * atom->nbonds / comm->nprocs);
   memory->create(bondstore, maxbond, ndata, "fix_bond_store:bondstore");
-  if (hybrid_flag) {
-    memory->create(bondstore_comp, maxbond, ndata, "fix_bond_store:bondstore_comp");
-    memory->create(bondtype_orig, maxbond, "fix_bond_store:bondtype_orig");
-  }
 }
 
 /* ---------------------------------------------------------------------- */
 
 void FixBondHistory::setup_post_neighbor()
 {
-  hybrid_flag = 0;
-  for (int i = 1; i <= atom->nbondtypes; i++)
-    if (!setflag[i]) hybrid_flag = 1;
-
-  if (maxbond == 0) allocate();
+  //Grow array if number of bonds has increased
+  while (neighbor->nbondlist >= maxbond) {
+    maxbond += DELTA;
+    memory->grow(bondstore, maxbond, ndata, "fix_bond_store:bondstore");
+  }
 
   pre_exchange();
   post_neighbor();
@@ -213,10 +206,6 @@ void FixBondHistory::post_neighbor()
   while (neighbor->nbondlist >= maxbond) {
     maxbond += DELTA;
     memory->grow(bondstore, maxbond, ndata, "fix_bond_store:bondstore");
-    if (hybrid_flag) {
-      memory->grow(bondstore_comp, maxbond, ndata, "fix_bond_store:bondstore_comp");
-      memory->grow(bondtype_orig, maxbond, "fix_bond_store:bondtype_orig");
-    }
   }
 
   int i1, i2, n, m, idata;
@@ -226,7 +215,6 @@ void FixBondHistory::post_neighbor()
 
   int nlocal = atom->nlocal;
   tagint **bond_atom = atom->bond_atom;
-  int **bond_type = atom->bond_type;
   int *num_bond = atom->num_bond;
   tagint *tag = atom->tag;
 
@@ -234,12 +222,12 @@ void FixBondHistory::post_neighbor()
     i1 = bondlist[n][0];
     i2 = bondlist[n][1];
 
-    // skip bond if already broken or not allocated
-    if (bondlist[n][2] <= 0 || !setflag[bondlist[n][2]]) { continue; }
+    // skip bond if already broken
+    if (bondlist[n][2] <= 0) { continue; }
 
     if (i1 < nlocal) {
       for (m = 0; m < num_bond[i1]; m++) {
-        if (bond_atom[i1][m] == tag[i2] && setflag[bond_type[i1][m]]) {
+        if (bond_atom[i1][m] == tag[i2]) {
           for (idata = 0; idata < ndata; idata++) {
             bondstore[n][idata] = stored[i1][m * ndata + idata];
           }
@@ -249,18 +237,13 @@ void FixBondHistory::post_neighbor()
 
     if (i2 < nlocal) {
       for (m = 0; m < num_bond[i2]; m++) {
-        if (bond_atom[i2][m] == tag[i1] && setflag[bond_type[i2][m]]) {
+        if (bond_atom[i2][m] == tag[i1]) {
           for (idata = 0; idata < ndata; idata++) {
             bondstore[n][idata] = stored[i2][m * ndata + idata];
           }
         }
       }
     }
-  }
-
-  if (hybrid_flag) {
-    nbondlist_orig = nbondlist;
-    for (n = 0; n < nbondlist; n++) bondtype_orig[n] = bondlist[n][2];
   }
 
   updated_bond_flag = 1;
@@ -309,55 +292,6 @@ void FixBondHistory::set_arrays(int i)
   double **stored = atom->darray[index];
   for (int m = 0; m < nbond; m++)
     for (int idata = 0; idata < ndata; idata++) stored[i][m * ndata + idata] = 0.0;
-}
-
-/* ----------------------------------------------------------------------
-   Compress history arrays, cutting out unused types, for bond hybrid
-------------------------------------------------------------------------- */
-
-void FixBondHistory::compress_history()
-{
-  // if this is a re-neighbor step or updating, compress bondstore
-
-  int type;
-  int ncomp = 0;
-  if (update_flag || (neighbor->ago == 0)) {
-    for (int n = 0; n < nbondlist_orig; n++) {
-      type = bondtype_orig[n];
-
-      if (type <= 0) continue;
-      if (!setflag[type]) continue;
-
-      for (int m = 0; m < ndata; m++) bondstore_comp[ncomp][m] = bondstore[n][m];
-      ncomp += 1;
-    }
-  }
-
-  // replace ptr to original array
-  bondstore_orig = bondstore;
-  bondstore = bondstore_comp;
-}
-
-/* ---------------------------------------------------------------------- */
-
-void FixBondHistory::uncompress_history()
-{
-  if (update_flag) {
-    int type;
-    int ncomp = 0;
-    for (int n = 0; n < nbondlist_orig; n++) {
-      type = bondtype_orig[n];
-
-      if (type <= 0) continue;
-      if (!setflag[type]) continue;
-
-      for (int m = 0; m < ndata; m++) bondstore_orig[n][m] = bondstore[ncomp][m];
-      ncomp += 1;
-    }
-  }
-
-  // restore ptr to original array
-  bondstore = bondstore_orig;
 }
 
 /* ----------------------------------------------------------------------

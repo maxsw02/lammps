@@ -33,8 +33,8 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
-#include <utility>
 
+#define SWAP(a,b) {temp=(a);(a)=(b);(b)=temp;}
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 static constexpr double GOLD = 1.618034;
 
@@ -302,7 +302,8 @@ void FixTuneKspace::adjust_rcut(double time)
   if (utils::strmatch(force->kspace_style,"^msm")) return;
   if (converged) return;
 
-  constexpr double TINY = 1.0e-20;
+  double temp;
+  const double TINY = 1.0e-20;
 
   // get the current cutoff
   int itmp;
@@ -327,8 +328,8 @@ void FixTuneKspace::adjust_rcut(double time)
       bx_brent = current_cutoff;
       fb_brent = time;
       if (fb_brent > fa_brent) {
-        std::swap(ax_brent,bx_brent);
-        std::swap(fb_brent,fa_brent);
+        SWAP(ax_brent,bx_brent);
+        SWAP(fb_brent,fa_brent);
         pair_cut_coul /= 4;
       } else {
         pair_cut_coul *= 2;

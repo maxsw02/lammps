@@ -33,6 +33,9 @@ class FixSPHStationary : public Fix {
   void final_integrate() override;
   void reset_dt() override;
 
+ private:
+  class NeighList *list;
+
  protected:
   double dtv, dtf;
   double *step_respa;

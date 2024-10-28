@@ -37,7 +37,6 @@ class AngleSPICA : public Angle {
   void read_restart(FILE *) override;
   void write_data(FILE *) override;
   double single(int, int, int, int) override;
-  void *extract(const char *, int &) override;
 
  protected:
   double *k, *theta0;
@@ -53,7 +52,7 @@ class AngleSPICA : public Angle {
 
   void ev_tally13(int, int, int, int, double, double, double, double, double);
 
-  virtual void allocate();
+  void allocate();
 };
 
 }    // namespace LAMMPS_NS

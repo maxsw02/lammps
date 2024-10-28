@@ -100,27 +100,11 @@ void Tokenizer::reset()
 
 /*! Search the text to be processed for a sub-string.
  *
- * This method does a generic sub-string match.
- *
  * \param  str  string to be searched for
  * \return      true if string was found, false if not */
 bool Tokenizer::contains(const std::string &str) const
 {
   return text.find(str) != std::string::npos;
-}
-
-/*! Search the text to be processed for regular expression match.
- *
-\verbatim embed:rst
-This method matches the current string against a regular expression using
-the :cpp:func:`utils::strmatch() <LAMMPS_NS::utils::strmatch>` function.
-\endverbatim
- *
- * \param  str  regular expression to be matched against
- * \return      true if string was found, false if not */
-bool Tokenizer::matches(const std::string &str) const
-{
-  return utils::strmatch(text, str);
 }
 
 /*! Skip over a given number of tokens
@@ -250,27 +234,11 @@ bool ValueTokenizer::has_next() const
 
 /*! Search the text to be processed for a sub-string.
  *
- * This method does a generic sub-string match.
- *
  * \param  value  string with value to be searched for
  * \return        true if string was found, false if not */
 bool ValueTokenizer::contains(const std::string &value) const
 {
   return tokens.contains(value);
-}
-
-/*! Search the text to be processed for regular expression match.
- *
-\verbatim embed:rst
-This method matches the current string against a regular expression using
-the :cpp:func:`utils::strmatch() <LAMMPS_NS::utils::strmatch>` function.
-\endverbatim
- *
- * \param  str  regular expression to be matched against
- * \return      true if string was found, false if not */
-bool ValueTokenizer::matches(const std::string &str) const
-{
-  return tokens.matches(str);
 }
 
 /*! Retrieve next token
@@ -287,20 +255,8 @@ std::string ValueTokenizer::next_string()
 int ValueTokenizer::next_int()
 {
   std::string current = tokens.next();
-  try {
-    std::size_t end;
-    auto val = std::stoi(current, &end);
-    // only partially converted
-    if (current.size() != end) { throw InvalidIntegerException(current); }
-    return val;
-
-    // rethrow exceptions from std::stoi()
-  } catch (std::out_of_range const &) {
-    throw InvalidIntegerException(current);
-  } catch (std::invalid_argument const &) {
-    throw InvalidIntegerException(current);
-  }
-  return 0;
+  if (!utils::is_integer(current)) { throw InvalidIntegerException(current); }
+  return atoi(current.c_str());
 }
 
 /*! Retrieve next token and convert to bigint
@@ -309,22 +265,8 @@ int ValueTokenizer::next_int()
 bigint ValueTokenizer::next_bigint()
 {
   std::string current = tokens.next();
-  try {
-    std::size_t end;
-    auto val = std::stoll(current, &end, 10);
-    // only partially converted
-    if (current.size() != end) { throw InvalidIntegerException(current); }
-    // out of range
-    if ((val < (-MAXBIGINT - 1) || (val > MAXBIGINT))) { throw InvalidIntegerException(current); };
-    return (bigint) val;
-
-    // rethrow exceptions from std::stoll()
-  } catch (std::out_of_range const &) {
-    throw InvalidIntegerException(current);
-  } catch (std::invalid_argument const &) {
-    throw InvalidIntegerException(current);
-  }
-  return 0;
+  if (!utils::is_integer(current)) { throw InvalidIntegerException(current); }
+  return ATOBIGINT(current.c_str());
 }
 
 /*! Retrieve next token and convert to tagint
@@ -333,22 +275,8 @@ bigint ValueTokenizer::next_bigint()
 tagint ValueTokenizer::next_tagint()
 {
   std::string current = tokens.next();
-  try {
-    std::size_t end;
-    auto val = std::stoll(current, &end, 10);
-    // only partially converted
-    if (current.size() != end) { throw InvalidIntegerException(current); }
-    // out of range
-    if ((val < (-MAXTAGINT - 1) || (val > MAXTAGINT))) { throw InvalidIntegerException(current); }
-    return (tagint) val;
-
-    // rethrow exceptions from std::stoll()
-  } catch (std::out_of_range const &) {
-    throw InvalidIntegerException(current);
-  } catch (std::invalid_argument const &) {
-    throw InvalidIntegerException(current);
-  }
-  return 0;
+  if (!utils::is_integer(current)) { throw InvalidIntegerException(current); }
+  return ATOTAGINT(current.c_str());
 }
 
 /*! Retrieve next token and convert to double
@@ -357,19 +285,8 @@ tagint ValueTokenizer::next_tagint()
 double ValueTokenizer::next_double()
 {
   std::string current = tokens.next();
-  try {
-    std::size_t end;
-    auto val = std::stod(current, &end);
-    // only partially converted
-    if (current.size() != end) { throw InvalidFloatException(current); }
-    return val;
-    // rethrow exceptions from std::stod()
-  } catch (std::out_of_range const &) {
-    throw InvalidFloatException(current);
-  } catch (std::invalid_argument const &) {
-    throw InvalidFloatException(current);
-  }
-  return 0.0;
+  if (!utils::is_double(current)) { throw InvalidFloatException(current); }
+  return atof(current.c_str());
 }
 
 /*! Skip over a given number of tokens

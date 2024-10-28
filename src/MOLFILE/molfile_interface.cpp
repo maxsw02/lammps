@@ -26,6 +26,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 
 #if vmdplugin_ABIVERSION < 16
 #error "unsupported VMD molfile plugin ABI version"

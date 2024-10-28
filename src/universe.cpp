@@ -21,7 +21,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int MAXLINE = 256;
+#define MAXLINE 256
 
 /* ----------------------------------------------------------------------
    create & initialize the universe of processors in communicator
@@ -69,7 +69,7 @@ Universe::~Universe()
 
 void Universe::reorder(char *style, char *arg)
 {
-  char line[MAXLINE] = {'\0'};
+  char line[MAXLINE];
 
   if (uworld != uorig) MPI_Comm_free(&uworld);
 
@@ -181,10 +181,10 @@ void Universe::add_world(char *str)
       if ((found == 0) || (found == (part.size() - 1))) {
         valid = false;
       } else if (found == std::string::npos) {
-        nper = std::stoi(part);
+        nper = atoi(part.c_str());
       } else {
-        n = std::stoi(part.substr(0,found));
-        nper = std::stoi(part.substr(found+1));
+        n = atoi(part.substr(0,found).c_str());
+        nper = atoi(part.substr(found+1).c_str());
       }
     }
 
@@ -193,7 +193,8 @@ void Universe::add_world(char *str)
     if (n < 1 || nper < 1) valid = false;
 
     if (!valid)
-      error->universe_all(FLERR, fmt::format("Invalid partition string '{}'", str));
+      error->universe_all(FLERR,fmt::format("Invalid partition string '{}'",
+                                            str));
   } else nper = nprocs;
 
   memory->grow(procs_per_world,nworlds+n,"universe:procs_per_world");

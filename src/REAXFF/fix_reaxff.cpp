@@ -19,7 +19,7 @@
    Please cite the related publication:
    H. M. Aktulga, J. C. Fogarty, S. A. Pandit, A. Y. Grama,
    "Parallel Reactive Molecular Dynamics: Numerical Methods and
-   Algorithmic Techniques", Parallel Computing, 38 (4-5), 245-259.
+   Algorithmic Techniques", Parallel Computing, in press.
 ------------------------------------------------------------------------- */
 
 #include "fix_reaxff.h"
@@ -29,8 +29,9 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr int MIN_REAX_BONDS  = 15;
-static constexpr int MIN_REAX_HBONDS = 25;
+#define MAX_REAX_BONDS      30
+#define MIN_REAX_BONDS      15
+#define MIN_REAX_HBONDS     25
 
 /* ---------------------------------------------------------------------- */
 

@@ -34,7 +34,7 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace MathSpecial;
 
-static constexpr int DELTA = 4;
+#define DELTA 4
 
 /* ----------------------------------------------------------------------
    Fermi-like smoothing function

@@ -46,7 +46,6 @@ class FixBondReact : public Fix {
   void init_list(int, class NeighList *) override;
   void post_integrate() override;
   void post_integrate_respa(int, int) override;
-  void post_force(int) override;
 
   int pack_forward_comm(int, int *, double *, int, int *) override;
   void unpack_forward_comm(int, int, double *) override;
@@ -63,7 +62,7 @@ class FixBondReact : public Fix {
   int *iatomtype, *jatomtype;
   int *seed;
   double **cutsq, *fraction;
-  int *max_rxn, *nlocalkeep, *nghostlykeep;
+  int *max_rxn, *nlocalskips, *nghostlyskips;
   tagint lastcheck;
   int stabilization_flag;
   int reset_mol_ids_flag;
@@ -216,7 +215,7 @@ class FixBondReact : public Fix {
   void glove_ghostcheck();
   void ghost_glovecast();
   void update_everything();
-  int insert_atoms_setup(tagint **, int);
+  int insert_atoms(tagint **, int);
   void unlimit_bond(); // removes atoms from stabilization, and other post-reaction every-step operations
   void dedup_mega_gloves(int);    //dedup global mega_glove
   void write_restart(FILE *) override;
@@ -245,15 +244,6 @@ class FixBondReact : public Fix {
   class Compute *cperbond;    // pointer to 'compute bond/local' used by custom constraint ('rxnbond' function)
   std::map<std::set<tagint>, int> atoms2bond;    // maps atom pair to index of local bond array
   std::vector<std::vector<Constraint>> constraints;
-
-  tagint addatomtag;
-  struct AddAtom {
-    tagint tag, molecule;
-    int type, mask;
-    imageint image;
-    double rmass, x[3], v[3];
-  };
-  std::vector<AddAtom> addatoms;
 
   // DEBUG
 

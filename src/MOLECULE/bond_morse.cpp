@@ -227,8 +227,6 @@ void BondMorse::born_matrix(int type, double rsq, int /*i*/, int /*j*/, double &
 void *BondMorse::extract(const char *str, int &dim)
 {
   dim = 1;
-  if (strcmp(str, "d0") == 0) return (void *) d0;
-  if (strcmp(str, "alpha") == 0) return (void *) alpha;
   if (strcmp(str, "r0") == 0) return (void *) r0;
   return nullptr;
 }

@@ -35,7 +35,7 @@ enum { SCALAR, VECTOR, WINDOW };
 enum { DEFAULT, GLOBAL, PERATOM, LOCAL };
 enum { IGNORE, END, EXTRA };
 
-static constexpr double BIG = 1.0e20;
+#define BIG 1.0e20
 /* ---------------------------------------------------------------------- */
 
 FixAveHisto::FixAveHisto(LAMMPS *lmp, int narg, char **arg) :
@@ -164,7 +164,7 @@ FixAveHisto::FixAveHisto(LAMMPS *lmp, int narg, char **arg) :
   }
 
   // check input args for kind consistency
-  // inputs must all be all either global, per-atom, or local
+  // all inputs must all be global, per-atom, or local
 
   if (nevery <= 0)
     error->all(FLERR,"Illegal {} nevery value: {}", mycmd, nevery);
@@ -207,8 +207,7 @@ FixAveHisto::FixAveHisto(LAMMPS *lmp, int narg, char **arg) :
       if (val.val.v < 0)
         error->all(FLERR,"Variable name {} for {} does not exist", val.id, mycmd);
       // variables only produce one kind of output
-      if (input->variable->equalstyle(val.val.v) || input->variable->vectorstyle(val.val.v))
-          kindglobal = 1;
+      if (input->variable->equalstyle(val.val.v)) kindglobal = 1;
       else if (input->variable->atomstyle(val.val.v)) kindperatom = 1;
       else error->all(FLERR,"{} variable {} is incompatible style", mycmd, val.id);
     }
@@ -601,8 +600,6 @@ void FixAveHisto::end_of_step()
       }
 
     // evaluate equal-style or vector-style or atom-style variable
-    // if index exceeds vector length, use a zero value
-    //   this can be useful if vector length is not known a priori
 
     } else if (val.which == ArgInfo::VARIABLE) {
       if (kind == GLOBAL && mode == SCALAR) {
@@ -610,7 +607,7 @@ void FixAveHisto::end_of_step()
         else {
           double *varvec;
           int nvec = input->variable->compute_vector(val.val.v,&varvec);
-          if (j > nvec) bin_one(0.0);
+          if (nvec < j) bin_one(0.0);
           else bin_one(varvec[j-1]);
         }
 
@@ -716,7 +713,7 @@ void FixAveHisto::end_of_step()
 
   if (fp && comm->me == 0) {
     clearerr(fp);
-    if (overwrite) (void) platform::fseek(fp,filepos);
+    if (overwrite) platform::fseek(fp,filepos);
     fmt::print(fp,"{} {} {} {} {} {}\n",ntimestep,nbins,
             stats_total[0],stats_total[1],stats_total[2],stats_total[3]);
     if (stats_total[0] != 0.0)
@@ -842,12 +839,10 @@ void FixAveHisto::options(int iarg, int narg, char **arg)
   auto mycmd = fmt::format("fix {}", style);
 
   while (iarg < narg) {
-    if ((strcmp(arg[iarg],"file") == 0) || (strcmp(arg[iarg],"append") == 0)) {
-      if (iarg+2 > narg)
-        utils::missing_cmd_args(FLERR, std::string("fix ave/histo ")+arg[iarg], error);
+    if (strcmp(arg[iarg],"file") == 0) {
+      if (iarg+2 > narg) utils::missing_cmd_args(FLERR, mycmd + " file", error);
       if (comm->me == 0) {
-        if (strcmp(arg[iarg],"file") == 0) fp = fopen(arg[iarg+1],"w");
-        else fp = fopen(arg[iarg+1],"a");
+        fp = fopen(arg[iarg+1],"w");
         if (fp == nullptr)
           error->one(FLERR, "Cannot open fix ave/histo file {}: {}",
                      arg[iarg+1], utils::getsyserror());

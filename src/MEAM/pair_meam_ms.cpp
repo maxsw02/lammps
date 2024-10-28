@@ -12,7 +12,6 @@
 ------------------------------------------------------------------------- */
 
 #include "pair_meam_ms.h"
-
 #include "meam.h"
 
 using namespace LAMMPS_NS;

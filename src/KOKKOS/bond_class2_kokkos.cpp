@@ -34,8 +34,6 @@ using namespace LAMMPS_NS;
 template<class DeviceType>
 BondClass2Kokkos<DeviceType>::BondClass2Kokkos(LAMMPS *lmp) : BondClass2(lmp)
 {
-  kokkosable = 1;
-
   atomKK = (AtomKokkos *) atom;
   neighborKK = (NeighborKokkos *) neighbor;
   execution_space = ExecutionSpaceFromDevice<DeviceType>::space;
@@ -124,12 +122,12 @@ void BondClass2Kokkos<DeviceType>::compute(int eflag_in, int vflag_in)
 
   if (eflag_atom) {
     k_eatom.template modify<DeviceType>();
-    k_eatom.sync_host();
+    k_eatom.template sync<LMPHostType>();
   }
 
   if (vflag_atom) {
     k_vatom.template modify<DeviceType>();
-    k_vatom.sync_host();
+    k_vatom.template sync<LMPHostType>();
   }
 
   copymode = 0;
@@ -229,13 +227,13 @@ void BondClass2Kokkos<DeviceType>::coeff(int narg, char **arg)
     k_r0.h_view[i] = r0[i];
   }
 
-  k_k2.modify_host();
+  k_k2.template modify<LMPHostType>();
   k_k2.template sync<DeviceType>();
-  k_k3.modify_host();
+  k_k3.template modify<LMPHostType>();
   k_k3.template sync<DeviceType>();
-  k_k4.modify_host();
+  k_k4.template modify<LMPHostType>();
   k_k4.template sync<DeviceType>();
-  k_r0.modify_host();
+  k_r0.template modify<LMPHostType>();
   k_r0.template sync<DeviceType>();
 }
 
@@ -266,13 +264,13 @@ void BondClass2Kokkos<DeviceType>::read_restart(FILE *fp)
     k_r0.h_view[i] = r0[i];
   }
 
-  k_k2.modify_host();
+  k_k2.template modify<LMPHostType>();
   k_k2.template sync<DeviceType>();
-  k_k3.modify_host();
+  k_k3.template modify<LMPHostType>();
   k_k3.template sync<DeviceType>();
-  k_k4.modify_host();
+  k_k4.template modify<LMPHostType>();
   k_k4.template sync<DeviceType>();
-  k_r0.modify_host();
+  k_r0.template modify<LMPHostType>();
   k_r0.template sync<DeviceType>();
 }
 

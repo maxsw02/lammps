@@ -70,8 +70,6 @@
 #include "modify.h"
 #include "update.h"
 
-#include "fmt/ranges.h"
-
 #include <cstring>
 #include <vector>
 
@@ -81,7 +79,7 @@ extern "C" {
 
 using namespace LAMMPS_NS;
 
-static constexpr int MAXLINE = 1024;
+#define MAXLINE 1024
 
 /* ---------------------------------------------------------------------- */
 
@@ -281,8 +279,7 @@ void KimInteractions::KIM_SET_TYPE_PARAMETERS(const std::string &input_line) con
     if (fp == nullptr) error->one(FLERR, "Parameter file {} not found", filename);
   }
 
-  char line[MAXLINE] = {'\0'};
-  char *ptr;
+  char line[MAXLINE], *ptr;
   int n, eof = 0;
 
   while (true) {

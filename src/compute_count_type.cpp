@@ -14,11 +14,11 @@
 #include "compute_count_type.h"
 
 #include "atom.h"
+#include "domain.h"
 #include "error.h"
 #include "force.h"
+#include "group.h"
 #include "update.h"
-
-#include <cstring>
 
 using namespace LAMMPS_NS;
 
@@ -62,24 +62,24 @@ ComputeCountType::ComputeCountType(LAMMPS *lmp, int narg, char **arg) :
   if (mode == ATOM) {
     vector_flag = 1;
     size_vector = atom->ntypes;
-    extvector = 0;
+    extvector = 1;
   } else if (mode == BOND) {
     scalar_flag = vector_flag = 1;
     size_vector = atom->nbondtypes;
-    extscalar = 0;
-    extvector = 0;
+    extscalar = 1;
+    extvector = 1;
   } else if (mode == ANGLE) {
     vector_flag = 1;
     size_vector = atom->nangletypes;
-    extvector = 0;
+    extvector = 1;
   } else if (mode == DIHEDRAL) {
     vector_flag = 1;
     size_vector = atom->ndihedraltypes;
-    extvector = 0;
+    extvector = 1;
   } else if (mode == IMPROPER) {
     vector_flag = 1;
     size_vector = atom->nimpropertypes;
-    extvector = 0;
+    extvector = 1;
   }
 
   // output vector

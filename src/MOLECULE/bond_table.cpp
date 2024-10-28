@@ -33,7 +33,7 @@ using namespace LAMMPS_NS;
 
 enum { NONE, LINEAR, SPLINE };
 
-static constexpr double BIGNUM = 1.0e300;
+#define BIGNUM 1.0e300
 
 /* ---------------------------------------------------------------------- */
 

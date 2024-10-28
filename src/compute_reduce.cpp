@@ -31,14 +31,12 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr double BIG = 1.0e20;
+#define BIG 1.0e20
 
 //----------------------------------------------------------------
-
 void abs_max(void *in, void *inout, int * /*len*/, MPI_Datatype * /*type*/)
 {
   // r is the already reduced value, n is the new value
-
   double n = std::fabs(*(double *) in), r = *(double *) inout;
   double m;
 
@@ -49,11 +47,9 @@ void abs_max(void *in, void *inout, int * /*len*/, MPI_Datatype * /*type*/)
   }
   *(double *) inout = m;
 }
-
 void abs_min(void *in, void *inout, int * /*len*/, MPI_Datatype * /*type*/)
 {
   // r is the already reduced value, n is the new value
-
   double n = std::fabs(*(double *) in), r = *(double *) inout;
   double m;
 
@@ -72,7 +68,6 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
     owner(nullptr), idregion(nullptr), region(nullptr), varatom(nullptr)
 {
   int iarg = 0;
-
   if (strcmp(style, "reduce") == 0) {
     if (narg < 5) utils::missing_cmd_args(FLERR, "compute reduce", error);
     iarg = 3;
@@ -139,6 +134,7 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
     value_t val;
 
     val.id = "";
+    val.flavor = 0;
     val.val.c = nullptr;
 
     if (strcmp(arg[iarg], "x") == 0) {
@@ -192,7 +188,6 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
   nvalues = values.size();
   replace = new int[nvalues];
   for (int i = 0; i < nvalues; ++i) replace[i] = -1;
-  input_mode = PERATOM;
   std::string mycmd = "compute ";
   mycmd += style;
 
@@ -211,13 +206,6 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
       if ((replace[col1] >= 0) || (replace[col2] >= 0))
         error->all(FLERR, "Compute {} replace column already used for another replacement");
       replace[col1] = col2;
-      iarg += 2;
-    } else if (strcmp(arg[iarg], "inputs") == 0) {
-      if (iarg + 2 > narg) utils::missing_cmd_args(FLERR, mycmd + " inputs", error);
-      if (strcmp(arg[iarg + 1], "peratom") == 0)
-        input_mode = PERATOM;
-      else if (strcmp(arg[iarg + 1], "local") == 0)
-        input_mode = LOCAL;
       iarg += 2;
     } else
       error->all(FLERR, "Unknown compute {} keyword: {}", style, arg[iarg]);
@@ -243,18 +231,15 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
   // setup and error check
 
   for (auto &val : values) {
-    if (val.which == ArgInfo::X || val.which == ArgInfo::V || val.which == ArgInfo::F) {
-      if (input_mode == LOCAL) error->all(FLERR, "Compute {} inputs must be all local");
+    if (val.which == ArgInfo::X || val.which == ArgInfo::V || val.which == ArgInfo::F)
+      val.flavor = PERATOM;
 
-    } else if (val.which == ArgInfo::COMPUTE) {
+    else if (val.which == ArgInfo::COMPUTE) {
       val.val.c = modify->get_compute_by_id(val.id);
       if (!val.val.c)
         error->all(FLERR, "Compute ID {} for compute {} does not exist", val.id, style);
-
-      if (input_mode == PERATOM) {
-        if (!val.val.c->peratom_flag)
-          error->all(FLERR, "Compute {} compute {} does not calculate per-atom values", style,
-                     val.id);
+      if (val.val.c->peratom_flag) {
+        val.flavor = PERATOM;
         if (val.argindex == 0 && val.val.c->size_peratom_cols != 0)
           error->all(FLERR, "Compute {} compute {} does not calculate a per-atom vector", style,
                      val.id);
@@ -263,10 +248,8 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
                      val.id);
         if (val.argindex && val.argindex > val.val.c->size_peratom_cols)
           error->all(FLERR, "Compute {} compute {} array is accessed out-of-range", style, val.id);
-
-      } else if (input_mode == LOCAL) {
-        if (!val.val.c->local_flag)
-          error->all(FLERR, "Compute {} compute {} does not calculate local values", style, val.id);
+      } else if (val.val.c->local_flag) {
+        val.flavor = LOCAL;
         if (val.argindex == 0 && val.val.c->size_local_cols != 0)
           error->all(FLERR, "Compute {} compute {} does not calculate a local vector", style,
                      val.id);
@@ -275,15 +258,14 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
                      val.id);
         if (val.argindex && val.argindex > val.val.c->size_local_cols)
           error->all(FLERR, "Compute {} compute {} array is accessed out-of-range", style, val.id);
-      }
+      } else
+        error->all(FLERR, "Compute {} compute {} calculates global values", style, val.id);
 
     } else if (val.which == ArgInfo::FIX) {
       val.val.f = modify->get_fix_by_id(val.id);
       if (!val.val.f) error->all(FLERR, "Fix ID {} for compute {} does not exist", val.id, style);
-
-      if (input_mode == PERATOM) {
-        if (!val.val.f->peratom_flag)
-          error->all(FLERR, "Compute {} fix {} does not calculate per-atom values", style, val.id);
+      if (val.val.f->peratom_flag) {
+        val.flavor = PERATOM;
         if (val.argindex == 0 && (val.val.f->size_peratom_cols != 0))
           error->all(FLERR, "Compute {} fix {} does not calculate a per-atom vector", style,
                      val.id);
@@ -291,25 +273,24 @@ ComputeReduce::ComputeReduce(LAMMPS *lmp, int narg, char **arg) :
           error->all(FLERR, "Compute {} fix {} does not calculate a per-atom array", style, val.id);
         if (val.argindex && (val.argindex > val.val.f->size_peratom_cols))
           error->all(FLERR, "Compute {} fix {} array is accessed out-of-range", style, val.id);
-
-      } else if (input_mode == LOCAL) {
-        if (!val.val.f->local_flag)
-          error->all(FLERR, "Compute {} fix {} does not calculate local values", style, val.id);
+      } else if (val.val.f->local_flag) {
+        val.flavor = LOCAL;
         if (val.argindex == 0 && (val.val.f->size_local_cols != 0))
           error->all(FLERR, "Compute {} fix {} does not calculate a local vector", style, val.id);
         if (val.argindex && (val.val.f->size_local_cols == 0))
           error->all(FLERR, "Compute {} fix {} does not calculate a local array", style, val.id);
         if (val.argindex && (val.argindex > val.val.f->size_local_cols))
           error->all(FLERR, "Compute {} fix {} array is accessed out-of-range", style, val.id);
-      }
+      } else
+        error->all(FLERR, "Compute {} fix {} calculates global values", style, val.id);
 
     } else if (val.which == ArgInfo::VARIABLE) {
-      if (input_mode == LOCAL) error->all(FLERR, "Compute {} inputs must be all local");
       val.val.v = input->variable->find(val.id.c_str());
       if (val.val.v < 0)
         error->all(FLERR, "Variable name {} for compute {} does not exist", val.id, style);
       if (input->variable->atomstyle(val.val.v) == 0)
         error->all(FLERR, "Compute {} variable {} is not atom-style variable", style, val.id);
+      val.flavor = PERATOM;
     }
   }
 
@@ -425,8 +406,7 @@ void ComputeReduce::compute_vector()
   } else if (mode == MINN) {
     if (!replace) {
       for (int m = 0; m < nvalues; m++)
-        MPI_Allreduce(&onevec[m], &vector[m], 1, MPI_DOUBLE, this->scalar_reduction_operation,
-                      world);
+        MPI_Allreduce(&onevec[m], &vector[m], 1, MPI_DOUBLE, this->scalar_reduction_operation, world);
 
     } else {
       for (int m = 0; m < nvalues; m++)
@@ -446,8 +426,7 @@ void ComputeReduce::compute_vector()
   } else if (mode == MAXX) {
     if (!replace) {
       for (int m = 0; m < nvalues; m++)
-        MPI_Allreduce(&onevec[m], &vector[m], 1, MPI_DOUBLE, this->scalar_reduction_operation,
-                      world);
+        MPI_Allreduce(&onevec[m], &vector[m], 1, MPI_DOUBLE, this->scalar_reduction_operation, world);
 
     } else {
       for (int m = 0; m < nvalues; m++)
@@ -533,7 +512,7 @@ double ComputeReduce::compute_one(int m, int flag)
 
   } else if (val.which == ArgInfo::COMPUTE) {
 
-    if (input_mode == PERATOM) {
+    if (val.flavor == PERATOM) {
       if (!(val.val.c->invoked_flag & Compute::INVOKED_PERATOM)) {
         val.val.c->compute_peratom();
         val.val.c->invoked_flag |= Compute::INVOKED_PERATOM;
@@ -558,7 +537,7 @@ double ComputeReduce::compute_one(int m, int flag)
           one = carray_atom[flag][aidxm1];
       }
 
-    } else if (input_mode == LOCAL) {
+    } else if (val.flavor == LOCAL) {
       if (!(val.val.c->invoked_flag & Compute::INVOKED_LOCAL)) {
         val.val.c->compute_local();
         val.val.c->invoked_flag |= Compute::INVOKED_LOCAL;
@@ -588,7 +567,7 @@ double ComputeReduce::compute_one(int m, int flag)
     if (update->ntimestep % val.val.f->peratom_freq)
       error->all(FLERR, "Fix {} used in compute {} not computed at compatible time", val.id, style);
 
-    if (input_mode == PERATOM) {
+    if (val.flavor == PERATOM) {
       if (aidx == 0) {
         double *fix_vector = val.val.f->vector_atom;
         if (flag < 0) {
@@ -606,7 +585,7 @@ double ComputeReduce::compute_one(int m, int flag)
           one = fix_array[flag][aidxm1];
       }
 
-    } else if (input_mode == LOCAL) {
+    } else if (val.flavor == LOCAL) {
       if (aidx == 0) {
         double *fix_vector = val.val.f->vector_local;
         int n = val.val.f->size_local_rows;
@@ -653,18 +632,18 @@ bigint ComputeReduce::count(int m)
   if ((val.which == ArgInfo::X) || (val.which == ArgInfo::V) || (val.which == ArgInfo::F))
     return group->count(igroup);
   else if (val.which == ArgInfo::COMPUTE) {
-    if (input_mode == PERATOM) {
+    if (val.flavor == PERATOM) {
       return group->count(igroup);
-    } else if (input_mode == LOCAL) {
+    } else if (val.flavor == LOCAL) {
       bigint ncount = val.val.c->size_local_rows;
       bigint ncountall;
       MPI_Allreduce(&ncount, &ncountall, 1, MPI_LMP_BIGINT, MPI_SUM, world);
       return ncountall;
     }
   } else if (val.which == ArgInfo::FIX) {
-    if (input_mode == PERATOM) {
+    if (val.flavor == PERATOM) {
       return group->count(igroup);
-    } else if (input_mode == LOCAL) {
+    } else if (val.flavor == LOCAL) {
       bigint ncount = val.val.f->size_local_rows;
       bigint ncountall;
       MPI_Allreduce(&ncount, &ncountall, 1, MPI_LMP_BIGINT, MPI_SUM, world);

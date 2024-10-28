@@ -37,7 +37,7 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
-static constexpr double SMALL = 0.00001;
+#define SMALL 0.00001
 
 enum { OFF, INTER, INTRA };
 

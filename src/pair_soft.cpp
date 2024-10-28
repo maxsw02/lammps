@@ -39,8 +39,6 @@ PairSoft::PairSoft(LAMMPS *lmp) : Pair(lmp)
 
 PairSoft::~PairSoft()
 {
-  if (copymode) return;
-
   if (allocated) {
     memory->destroy(setflag);
     memory->destroy(cutsq);

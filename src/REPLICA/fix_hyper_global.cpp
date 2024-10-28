@@ -32,8 +32,8 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr int DELTABOND = 16384;
-static constexpr int VECLEN = 5;
+#define DELTABOND 16384
+#define VECLEN 5
 
 // possible enhancements
 //   should there be a virial contribution from boosted bond?

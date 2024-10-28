@@ -33,7 +33,7 @@ using namespace LAMMPS_NS;
 
 enum { NONE, RLINEAR, RSQ, BMP };
 
-static constexpr double EPSILONR = 1.0e-6;
+#define EPSILONR 1.0e-6
 
 /* ---------------------------------------------------------------------- */
 

@@ -24,7 +24,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int EXTRA = 1000;
+#define EXTRA 1000
 
 /* ---------------------------------------------------------------------- */
 
@@ -48,7 +48,14 @@ AngleHybrid::~AngleHybrid()
     delete[] keywords;
   }
 
-  deallocate();
+  if (allocated) {
+    memory->destroy(setflag);
+    memory->destroy(map);
+    delete[] nanglelist;
+    delete[] maxangle;
+    for (int i = 0; i < nstyles; i++) memory->destroy(anglelist[i]);
+    delete[] anglelist;
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -164,22 +171,6 @@ void AngleHybrid::allocate()
   for (int m = 0; m < nstyles; m++) anglelist[m] = nullptr;
 }
 
-/* ---------------------------------------------------------------------- */
-
-void AngleHybrid::deallocate()
-{
-  if (!allocated) return;
-
-  allocated = 0;
-
-  memory->destroy(setflag);
-  memory->destroy(map);
-  delete[] nanglelist;
-  delete[] maxangle;
-  for (int i = 0; i < nstyles; i++) memory->destroy(anglelist[i]);
-  delete[] anglelist;
-}
-
 /* ----------------------------------------------------------------------
    create one angle style for each arg in list
 ------------------------------------------------------------------------- */
@@ -199,7 +190,15 @@ void AngleHybrid::settings(int narg, char **arg)
     delete[] keywords;
   }
 
-  deallocate();
+  if (allocated) {
+    memory->destroy(setflag);
+    memory->destroy(map);
+    delete[] nanglelist;
+    delete[] maxangle;
+    for (i = 0; i < nstyles; i++) memory->destroy(anglelist[i]);
+    delete[] anglelist;
+  }
+  allocated = 0;
 
   // allocate list of sub-styles
 
@@ -271,7 +270,7 @@ void AngleHybrid::coeff(int narg, char **arg)
     else if (strcmp(arg[1], "bb") == 0)
       error->all(FLERR, "BondBond coeff for hybrid angle has invalid format");
     else
-      error->all(FLERR, "Expected hybrid sub-style instead of {} in angle_coeff command", arg[1]);
+      error->all(FLERR, "Angle coeff for hybrid has invalid style");
   }
 
   // move 1st arg to 2nd arg
@@ -318,14 +317,6 @@ void AngleHybrid::init_style()
 
   for (int m = 0; m < nstyles; m++)
     if (styles[m]) styles[m]->init_style();
-}
-
-/* ---------------------------------------------------------------------- */
-
-int AngleHybrid::check_itype(int itype, char *substyle)
-{
-  if (strcmp(keywords[map[itype]], substyle) == 0) return 1;
-  return 0;
 }
 
 /* ----------------------------------------------------------------------
@@ -376,7 +367,7 @@ void AngleHybrid::read_restart(FILE *fp)
     keywords[m] = new char[n];
     if (me == 0) utils::sfread(FLERR, keywords[m], sizeof(char), n, fp, nullptr, error);
     MPI_Bcast(keywords[m], n, MPI_CHAR, 0, world);
-    styles[m] = force->new_angle(keywords[m], 1, dummy);
+    styles[m] = force->new_angle(keywords[m], 0, dummy);
     styles[m]->read_restart_settings(fp);
   }
 }

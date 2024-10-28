@@ -34,6 +34,8 @@
 
 #include <cmath>
 
+#define MIN_SINE 1e-10
+
 using namespace LAMMPS_NS;
 
 namespace ReaxFF {

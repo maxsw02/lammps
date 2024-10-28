@@ -123,9 +123,7 @@ struct vector_ops<double, KNC> {
     static fvec recip(const fvec &a) { return _mm512_recip_pd(a); }
     template<int scale>
     static void gather_prefetch_t0(const ivec &idx, bvec mask, const void *base) {
-#ifdef __AVX512PF__
       _mm512_mask_prefetch_i32gather_ps(idx, mask, base, scale, _MM_HINT_T0);
-#endif
     }
     template<int scale>
     static fvec gather(const fvec &from, bvec mask, const ivec &idx, const void *base) {
@@ -264,9 +262,7 @@ struct vector_ops<float, KNC> {
     static fvec recip(const fvec &a) { return _mm512_recip_ps(a); }
     template<int scale>
     static void gather_prefetch_t0(const ivec &idx, bvec mask, const void *base) {
-#ifdef __AVX512PF__
       _mm512_mask_prefetch_i32gather_ps(idx, mask, base, scale, _MM_HINT_T0);
-#endif
     }
     template<int scale>
     static fvec gather(const fvec &from, bvec mask, const ivec &idx, const void *base) {

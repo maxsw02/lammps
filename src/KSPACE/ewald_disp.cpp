@@ -38,7 +38,7 @@ using namespace MathConst;
 using namespace MathSpecial;
 using namespace MathExtra;
 
-static constexpr double SMALL = 0.00001;
+#define SMALL 0.00001
 
 //#define DEBUG
 

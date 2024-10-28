@@ -35,7 +35,7 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr double INERTIA = 0.2;          // moment of inertia prefactor for ellipsoid
+#define INERTIA 0.2          // moment of inertia prefactor for ellipsoid
 
 #define ME_qnormalize(q)                                                \
 {                                                                       \

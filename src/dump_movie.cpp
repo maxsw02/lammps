@@ -69,8 +69,9 @@ void DumpMovie::init_style()
 {
   // initialize image style circumventing multifile check
 
-  multifile_override = 1;
+  multifile = 1;
   DumpImage::init_style();
+  multifile = 0;
 }
 
 /* ---------------------------------------------------------------------- */

@@ -31,7 +31,8 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int MAXLINE = 1024;
+#define MAXLINE 1024
+#define MAXWORD 3
 
 /* ---------------------------------------------------------------------- */
 
@@ -379,8 +380,7 @@ void MLIAPDescriptorSNAP::read_paramfile(char *paramfilename)
                  utils::getsyserror());
   }
 
-  char line[MAXLINE] = {'\0'};
-  char *ptr;
+  char line[MAXLINE], *ptr;
   int eof = 0;
   int n;
 

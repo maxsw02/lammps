@@ -593,6 +593,7 @@ void FixCMAP::post_force(int vflag)
         vcmap[5] = (vb12y*f1[2])+(vb32y*f3[2])+((vb43y+vb32y)*f4[2])+
           ((vb54y+vb43y+vb32y)*f5[2]);
         ev_tally(nlist,list,5.0,E,vcmap);
+        //ev_tally(5,list,nlocal,newton_bond,E,vcmap);
       }
   }
 }
@@ -969,8 +970,7 @@ void FixCMAP::read_data_section(char * /*keyword*/, int /*n*/, char *buf,
       atom5 = values.next_tagint();
       if (values.has_next()) throw TokenizerException("too many items",line);
     } catch (std::exception &e) {
-      error->all(FLERR,"Incorrect format of CMAP section in data file: {}{}",
-                 e.what(), utils::errorurl(2));
+      error->all(FLERR,"Incorrect format of CMAP section: {}", e.what());
     }
 
     atom1 += id_offset;

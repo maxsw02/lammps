@@ -26,15 +26,14 @@
 #include "text_file_reader.h"
 
 #include <cstring>
-#include <exception>
 #include <Eigen/Eigen>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
 using namespace Eigen;
 using namespace std;
-
-static constexpr double EPSILON = 1.0e-6;
+#define DELTA 16384
+#define EPSILON 1.0e-6
 
 /* ---------------------------------------------------------------------- */
 

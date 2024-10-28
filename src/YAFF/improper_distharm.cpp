@@ -28,7 +28,11 @@
 #include "memory.h"
 #include "error.h"
 
+
 using namespace LAMMPS_NS;
+
+#define TOLERANCE 0.05
+#define SMALL     0.001
 
 /* ---------------------------------------------------------------------- */
 

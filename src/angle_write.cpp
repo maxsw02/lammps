@@ -25,6 +25,7 @@
 #include "error.h"
 #include "force.h"
 #include "input.h"
+#include "lammps.h"
 #include "math_const.h"
 #include "update.h"
 
@@ -34,7 +35,7 @@ using MathConst::DEG2RAD;
 using MathConst::RAD2DEG;
 
 static constexpr double epsilon = 6.5e-6;
-static constexpr int MAXLINE = 1024;
+#define MAXLINE 1024
 /* ---------------------------------------------------------------------- */
 
 void AngleWrite::command(int narg, char **arg)
@@ -146,12 +147,10 @@ void AngleWrite::command(int narg, char **arg)
     writer->input->one("mass * 1.0");
     writer->input->one(fmt::format("angle_style {}", force->angle_style));
     FILE *coeffs;
-    char line[MAXLINE] = {'\0'};
+    char line[MAXLINE];
     coeffs = fopen(coeffs_file.c_str(), "r");
-    if (!coeffs)
-      error->one(FLERR, "Unable to open temporary file {}: {}", coeffs_file, utils::getsyserror());
     for (int i = 0; i < atom->nangletypes; ++i) {
-      utils::sfgets(FLERR, line, MAXLINE, coeffs, coeffs_file.c_str(), error);
+      fgets(line, MAXLINE, coeffs);
       writer->input->one(fmt::format("angle_coeff {}", line));
     }
     fclose(coeffs);

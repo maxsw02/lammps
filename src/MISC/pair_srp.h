@@ -51,7 +51,6 @@ class PairSRP : public Pair {
   double **a0;
   double **srp;
   double cut_global;
-  std::string bptype_str, btype_str;
   int bptype;
   int btype;
   class Fix *f_srp;

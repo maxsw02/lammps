@@ -19,8 +19,6 @@
 
 #include "atom.h"
 
-#include <cstring>
-
 using namespace LAMMPS_NS;
 
 /* ---------------------------------------------------------------------- */

@@ -21,8 +21,7 @@
 ------------------------------------------------------------------------- */
 
 /* ----------------------------------------------------------------------
-      Contributing author:  Axel Kohlmeyer (Temple U)
-      Currently maintained by:  Giacomo Fiorin (NIH)
+      Contributing author: Axel Kohlmeyer (Temple U)
 ------------------------------------------------------------------------- */
 
 #ifdef FIX_CLASS
@@ -36,10 +35,6 @@ FixStyle(colvars,FixColvars);
 
 #include "fix.h"
 
-// Forward declarations
-namespace IntHash_NS {
-struct inthash_t;
-}
 class colvarproxy_lammps;
 
 namespace LAMMPS_NS {
@@ -71,11 +66,12 @@ class FixColvars : public Fix {
   char *conf_file;              // name of colvars config file
   char *inp_name;               // name/prefix of colvars restart file
   char *out_name;               // prefix string for all output files
-  char *tfix_name;              // name of thermostat fix.
+  char *tmp_name;               // name of thermostat fix.
   int rng_seed;                 // seed to initialize random number generator
-  double t_target = 0.0;        // thermostat target temperature
+  Fix *tstat_fix;               // pointer to thermostat fix
   double energy;                // biasing energy of the fix
 
+  int me;             // my MPI rank in this "world".
   int num_coords;     // total number of atoms controlled by this fix
   tagint *taglist;    // list of all atom IDs referenced by colvars.
 
@@ -84,10 +80,8 @@ class FixColvars : public Fix {
   struct commdata *comm_buf;    // communication buffer
   double *force_buf;            // communication buffer
 
-  /// Arguments passed from fix_modify to the Colvars script interface
-  unsigned char *script_args[100];
-
-  IntHash_NS::inthash_t *idmap;    // hash for mapping atom indices to consistent order.
+  void *idmap;       // hash for mapping atom indices to consistent order.
+  int *rev_idmap;    // list of the hash keys for reverse mapping.
 
   int nlevels_respa;       // flag to determine respa levels.
   int store_forces;        // flag to determine whether to store total forces
@@ -96,20 +90,7 @@ class FixColvars : public Fix {
   static int instances;    // count fix instances, since colvars currently
                            // only supports one instance at a time
   MPI_Comm root2root;      // inter-root communicator for multi-replica support
-
-  void init_taglist();    // initialize list of atom tags and hash table
-
-  /// Share with Colvars the thermostat fix named by tfix_name
-  void set_thermostat_temperature();
-
-  /// Tell Colvars where to get its state from and where to save it
-  void setup_io();
-
-  /// Parse LAMMPS-specific arguments to either fix or fix_modify
-  /// \param narg Number of arguments
-  /// \param arg Array of strings
-  /// \param fix_constructor If false, try Colvars commands if LAMMPS ones fail
-  int parse_fix_arguments(int narg, char **arg, bool fix_constructor = true);
+  void one_time_init();    // one time initialization
 };
 
 }    // namespace LAMMPS_NS

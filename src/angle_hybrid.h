@@ -42,16 +42,14 @@ class AngleHybrid : public Angle {
   double single(int, int, int, int) override;
   double memory_usage() override;
 
-  int check_itype(int, char *);
+ private:
+  int *map;    // which style each angle type points to
 
- protected:
-  int *map;            // which style each angle type points to
   int *nanglelist;     // # of angles in sub-style anglelists
   int *maxangle;       // max # of angles sub-style lists can store
   int ***anglelist;    // anglelist for each sub-style
 
-  virtual void allocate();
-  virtual void deallocate();
+  void allocate();
 };
 
 }    // namespace LAMMPS_NS

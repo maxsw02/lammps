@@ -36,8 +36,9 @@ using namespace MathConst;
 
 // EPS_ENERGY = minimum normalization for energy tolerance
 
-static constexpr double EPS_ENERGY = 1.0e-8;
-static constexpr int DELAYSTEP = 5;
+#define EPS_ENERGY 1.0e-8
+
+#define DELAYSTEP 5
 
 /* ---------------------------------------------------------------------- */
 

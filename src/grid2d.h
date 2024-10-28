@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   LAMMPS development team: developers@lammps.org
+   LAMMPS Development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -57,9 +57,6 @@ class Grid2d : protected Pointers {
   int me, nprocs;
   MPI_Comm gridcomm;    // communicator for this class
                         // usually world, but MSM calls with subset
-  int layout_grid;      // how this grid instance is distributed across procs
-                        //   uses enum options for comm->layout
-                        //   load balancing can create a new Grid with new layout_grid
 
   // inputs from caller via constructor
 

@@ -27,6 +27,9 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
+enum { XLO = 0, XHI = 1, YLO = 2, YHI = 3, ZLO = 4, ZHI = 5 };
+enum { NONE = 0, EDGE, CONSTANT, VARIABLE };
+
 static const char *wallpos[] = {"xlo", "xhi", "ylo", "yhi", "zlo", "zhi"};
 
 /* ---------------------------------------------------------------------- */
@@ -341,7 +344,7 @@ void FixWall::post_force(int vflag)
   v_init(vflag);
 
   // energy intialize.
-  // eflag is used to track whether wall energies have been communicated.
+  // eflag is used to track whether wall energies have been communitcated.
 
   eflag = 0;
   for (int m = 0; m <= nwall; m++) ewall[m] = 0.0;

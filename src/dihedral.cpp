@@ -48,7 +48,7 @@ Dihedral::Dihedral(LAMMPS *_lmp) : Pointers(_lmp)
   datamask_read = ALL_MASK;
   datamask_modify = ALL_MASK;
 
-  copymode = kokkosable = 0;
+  copymode = 0;
 }
 
 /* ---------------------------------------------------------------------- */

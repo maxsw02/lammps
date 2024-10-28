@@ -17,6 +17,7 @@
 #include "atom.h"
 #include "domain.h"
 #include "error.h"
+#include "modify.h"
 #include "respa.h"
 #include "update.h"
 

@@ -29,7 +29,6 @@ class AngleLepton : public Angle {
   AngleLepton(class LAMMPS *);
   ~AngleLepton() override;
   void compute(int, int) override;
-  void settings(int, char **) override;
   void coeff(int, char **) override;
   double equilibrium_angle(int) override;
   void write_restart(FILE *) override;
@@ -43,7 +42,6 @@ class AngleLepton : public Angle {
   double *theta0;
   int *type2expression;
   double *offset;
-  int auto_offset;
 
   virtual void allocate();
 

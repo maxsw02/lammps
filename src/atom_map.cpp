@@ -22,7 +22,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int EXTRA = 1000;
+#define EXTRA 1000
 
 /* ----------------------------------------------------------------------
    allocate and initialize array or hash table for global -> local map

@@ -38,7 +38,7 @@ FixViscousSphere::FixViscousSphere(LAMMPS *_lmp, int narg, char **arg) :
 {
   dynamic_group_allow = 1;
 
-  if (!atom->omega_flag) error->all(FLERR, "Fix viscous/sphere requires atom attribute omega");
+  if (!atom->sphere_flag) error->all(FLERR, "Fix viscous/sphere requires atom style sphere");
 
   if (narg < 4) error->all(FLERR, "Illegal fix viscous/sphere command");
 

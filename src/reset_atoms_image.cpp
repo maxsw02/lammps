@@ -22,6 +22,7 @@
 #include "group.h"
 #include "input.h"
 #include "modify.h"
+#include "update.h"
 #include "variable.h"
 
 #include <cmath>

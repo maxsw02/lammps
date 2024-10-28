@@ -46,7 +46,7 @@ enum { NODISCARD, MIXED, YESDISCARD };
 enum { ONCE, NFREQ, EVERY };    // used in several files
 enum { LIMITMAX, LIMITEXACT };
 
-static constexpr int IDMAX = (1024 * 1024);
+#define IDMAX (1024 * 1024)
 
 /* ---------------------------------------------------------------------- */
 

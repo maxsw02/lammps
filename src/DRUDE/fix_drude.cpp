@@ -22,6 +22,7 @@
 #include "modify.h"
 #include "molecule.h"
 
+#include <cstring>
 #include <map>
 #include <set>
 
@@ -82,7 +83,10 @@ FixDrude::~FixDrude()
 
 void FixDrude::init()
 {
-  if (modify->get_fix_by_style("^drude$").size() > 1) error->all(FLERR,"More than one fix drude");
+  int count = 0;
+  for (int i = 0; i < modify->nfix; i++)
+    if (strcmp(modify->fix[i]->style,"drude") == 0) count++;
+  if (count > 1) error->all(FLERR,"More than one fix drude");
 
   if (!rebuildflag) rebuild_special();
 }

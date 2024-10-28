@@ -16,6 +16,7 @@
 #include "angle.h"
 #include "atom.h"
 #include "bond.h"
+#include "comm.h"
 #include "compute_chunk_atom.h"
 #include "domain.h"
 #include "error.h"

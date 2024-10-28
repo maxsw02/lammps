@@ -24,12 +24,14 @@
 #include "angle.h"
 #include "atom.h"
 #include "bond.h"
+#include "comm.h"
 #include "domain.h"
 #include "error.h"
 #include "fft3d_wrap.h"
 #include "force.h"
 #include "grid3d.h"
 #include "math_const.h"
+#include "math_extra.h"
 #include "math_special.h"
 #include "memory.h"
 #include "neighbor.h"
@@ -43,12 +45,22 @@ using namespace LAMMPS_NS;
 using namespace MathConst;
 using namespace MathSpecial;
 
-static constexpr int MAXORDER = 7;
-static constexpr int OFFSET = 16384;
-static constexpr double LARGE = 10000.0;
-static constexpr double SMALL = 0.00001;
-static constexpr double EPS_HOC = 1.0e-7;
-static constexpr FFT_SCALAR ZEROF = 0.0;
+#define MAXORDER 7
+#define OFFSET 16384
+#define LARGE 10000.0
+#define SMALL 0.00001
+#define EPS_HOC 1.0e-7
+
+enum{REVERSE_RHO};
+enum{FORWARD_IK,FORWARD_AD,FORWARD_IK_PERATOM,FORWARD_AD_PERATOM};
+
+#ifdef FFT_SINGLE
+#define ZEROF 0.0f
+#define ONEF  1.0f
+#else
+#define ZEROF 0.0
+#define ONEF  1.0
+#endif
 
 /* ---------------------------------------------------------------------- */
 
@@ -1381,20 +1393,15 @@ void PPPM::set_grid_local()
   // npey_fft,npez_fft = # of procs in y,z dims
   // if nprocs is small enough, proc can own 1 or more entire xy planes,
   //   else proc owns 2d sub-blocks of yz plane
-  //   NOTE: commented out lines support this
-  //     need to ensure fft3d.cpp and remap.cpp support 2D planes
   // me_y,me_z = which proc (0-npe_fft-1) I am in y,z dimensions
   // nlo_fft,nhi_fft = lower/upper limit of the section
   //   of the global FFT mesh that I own in x-pencil decomposition
 
   int npey_fft,npez_fft;
-
-  //if (nz_pppm >= nprocs) {
-  //  npey_fft = 1;
-  //  npez_fft = nprocs;
-  //} else procs2grid2d(nprocs,ny_pppm,nz_pppm,&npey_fft,&npez_fft);
-
-  procs2grid2d(nprocs,ny_pppm,nz_pppm,&npey_fft,&npez_fft);
+  if (nz_pppm >= nprocs) {
+    npey_fft = 1;
+    npez_fft = nprocs;
+  } else procs2grid2d(nprocs,ny_pppm,nz_pppm,&npey_fft,&npez_fft);
 
   int me_y = me % npey_fft;
   int me_z = me / npey_fft;

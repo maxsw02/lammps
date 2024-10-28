@@ -28,7 +28,7 @@
 #include "suffix.h"
 using namespace LAMMPS_NS;
 
-static constexpr double SMALL = 0.0001;
+#define SMALL 0.0001
 
 /* ---------------------------------------------------------------------- */
 

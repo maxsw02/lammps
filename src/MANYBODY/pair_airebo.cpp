@@ -41,10 +41,8 @@
 using namespace LAMMPS_NS;
 using namespace MathSpecial;
 
-static constexpr double TOL = 1.0e-9;
-static constexpr int PGDELTA = 1;
-
-static const char *style[3] = {"airebo", "rebo", "airebo/morse"};
+#define TOL 1.0e-9
+#define PGDELTA 1
 
 /* ---------------------------------------------------------------------- */
 
@@ -152,7 +150,7 @@ void PairAIREBO::allocate()
 void PairAIREBO::settings(int narg, char **arg)
 {
   if (narg != 1 && narg != 3 && narg != 4)
-    error->all(FLERR,"Illegal pair_style {} command", style[variant]);
+    error->all(FLERR,"Illegal pair_style command");
 
   cutlj = utils::numeric(FLERR,arg[0],false,lmp);
 
@@ -177,7 +175,12 @@ void PairAIREBO::coeff(int narg, char **arg)
   if (!allocated) allocate();
 
   if (narg != 3 + atom->ntypes)
-    error->all(FLERR,"Incorrect number of args for pair coefficient.");
+    error->all(FLERR,"Incorrect args for pair coefficients");
+
+  // ensure I,J args are * *
+
+  if (strcmp(arg[0],"*") != 0 || strcmp(arg[1],"*") != 0)
+    error->all(FLERR,"Incorrect args for pair coefficients");
 
   // read args that map atom types to C and H
   // map[i] = which element (0,1) the Ith atom type is, -1 if "NULL"
@@ -190,7 +193,7 @@ void PairAIREBO::coeff(int narg, char **arg)
       map[i-2] = 0;
     } else if (strcmp(arg[i],"H") == 0) {
       map[i-2] = 1;
-    } else error->all(FLERR,"Element {} not supported by pair style {}", arg[i], style[variant]);
+    } else error->all(FLERR,"Incorrect args for pair coefficients");
   }
 
   // read potential file and initialize fitting splines
@@ -225,13 +228,13 @@ void PairAIREBO::coeff(int narg, char **arg)
 void PairAIREBO::init_style()
 {
   if (atom->tag_enable == 0)
-    error->all(FLERR,"Pair style {} requires atom IDs", style[variant]);
+    error->all(FLERR,"Pair style AIREBO requires atom IDs");
   if (force->newton_pair == 0)
-    error->all(FLERR,"Pair style {} requires newton pair on", style[variant]);
+    error->all(FLERR,"Pair style AIREBO requires newton pair on");
 
   // need a full neighbor list, including neighbors of ghosts
 
-  neighbor->add_request(this, NeighConst::REQ_FULL | NeighConst::REQ_GHOST);
+  neighbor->add_request(this,NeighConst::REQ_FULL|NeighConst::REQ_GHOST);
 
   // local REBO neighbor list
   // create pages if first time or if neighbor pgsize/oneatom has changed
@@ -617,7 +620,7 @@ void PairAIREBO::FLJ(int eflag)
         // if best = 1.0, done
 
         REBO_neighs_i = REBO_firstneigh[i];
-        for (kk = 0; (kk < REBO_numneigh[i]) && (done == 0); kk++) {
+        for (kk = 0; kk < REBO_numneigh[i] && done==0; kk++) {
           k = REBO_neighs_i[kk];
           if (k == j) continue;
           ktype = map[type[k]];
@@ -629,10 +632,7 @@ void PairAIREBO::FLJ(int eflag)
           if (rsq < rcmaxsq[itype][ktype]) {
             rik = sqrt(rsq);
             wik = Sp(rik,rcmin[itype][ktype],rcmax[itype][ktype],dwik);
-          } else {
-            dwik = wik = 0.0;
-            rikS = rik = 1.0;
-          }
+          } else { dwik = wik = 0.0; rikS = rik = 1.0; }
 
           if (wik > best) {
             deljk[0] = x[j][0] - x[k][0];
@@ -671,7 +671,7 @@ void PairAIREBO::FLJ(int eflag)
             // if best = 1.0, done
 
             REBO_neighs_k = REBO_firstneigh[k];
-            for (mm = 0; (mm < REBO_numneigh[k]) && (done == 0); mm++) {
+            for (mm = 0; mm < REBO_numneigh[k] && done==0; mm++) {
               m = REBO_neighs_k[mm];
               if (m == i || m == j) continue;
               mtype = map[type[m]];
@@ -682,10 +682,7 @@ void PairAIREBO::FLJ(int eflag)
               if (rsq < rcmaxsq[ktype][mtype]) {
                 rkm = sqrt(rsq);
                 wkm = Sp(rkm,rcmin[ktype][mtype],rcmax[ktype][mtype],dwkm);
-              } else {
-                dwkm = wkm = 0.0;
-                rkmS = rkm = 1.0;
-              }
+              } else { dwkm = wkm = 0.0; rkmS = rkm = 1.0; }
 
               if (wik*wkm > best) {
                 deljm[0] = x[j][0] - x[m][0];

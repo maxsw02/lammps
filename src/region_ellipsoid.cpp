@@ -23,17 +23,7 @@
 
 using namespace LAMMPS_NS;
 
-static double GetRoot2D(double r0, double z0, double z1, double g);
-static double GetRoot3D(double r0, double r1, double z0, double z1, double z2, double g);
-
-static double DistancePointEllipse(double e0, double e1, double y0, double y1, double &x0,
-                                   double &x1);
-static double DistancePointEllipsoid(double e0, double e1, double e2, double y0, double y1,
-                                     double y2, double &x0, double &x1, double &x2);
-
-static constexpr int maxIterations =
-    std::numeric_limits<double>::digits - std::numeric_limits<double>::min_exponent;
-static constexpr double EPSILON = std::numeric_limits<double>::epsilon() * 2.0;
+enum { CONSTANT, VARIABLE };
 
 /* ---------------------------------------------------------------------- */
 
@@ -446,24 +436,26 @@ void RegEllipsoid::variable_check()
 // ------------------------------------------------------------------
 
 /* ----------------------------------------------------------------------
-   static helper functions for the 2D case
+   functions for the 2D case
 ------------------------------------------------------------------------- */
 
-double GetRoot2D(double r0, double z0, double z1, double g)
+double RegEllipsoid::GetRoot2D(double r0, double z0, double z1, double g)
 {
-  const double n0 = r0 * z0;
-  double s0 = z1 - 1.0;
-  double s1 = (g < 0.0 ? 0.0 : sqrt(n0 * n0 + z1 * z1) - 1.0);
-  double s = 0.0;
+  int maxIterations =
+      std::numeric_limits<double>::digits - std::numeric_limits<double>::min_exponent;
+  double n0 = r0 * z0;
+  double s0 = z1 - 1;
+  double s1 = (g < 0 ? 0 : sqrt(n0 * n0 + z1 * z1) - 1);
+  double s = 0;
   for (int i = 0; i < maxIterations; ++i) {
-    s = (s0 + s1) / 2.0;
+    s = (s0 + s1) / 2;
     if (s == s0 || s == s1) { break; }
-    const double ratio0 = n0 / (s + r0);
-    const double ratio1 = z1 / (s + 1.0);
-    g = ratio0 * ratio0 + ratio1 * ratio1 - 1.0;
-    if ((g > 0.0) && (g > EPSILON)) {
+    double ratio0 = n0 / (s + r0);
+    double ratio1 = z1 / (s + 1);
+    g = ratio0 * ratio0 + ratio1 * ratio1 - 1;
+    if (g > 0) {
       s0 = s;
-    } else if ((g < 0.0) && (g < -EPSILON)) {
+    } else if (g < 0) {
       s1 = s;
     } else {
       break;
@@ -472,27 +464,28 @@ double GetRoot2D(double r0, double z0, double z1, double g)
   return s;
 }
 
-double DistancePointEllipse(double e0, double e1, double y0, double y1, double &x0, double &x1)
+double RegEllipsoid::DistancePointEllipse(double e0, double e1, double y0, double y1, double &x0,
+                                          double &x1)
 {
   double distance;
-  if (y1 > 0.0) {
-    if (y0 > 0.0) {
+  if (y1 > 0) {
+    if (y0 > 0) {
       double z0 = y0 / e0;
       double z1 = y1 / e1;
-      double g = z0 * z0 + z1 * z1 - 1.0;
-      if (g != 0.0) {
+      double g = z0 * z0 + z1 * z1 - 1;
+      if (g != 0) {
         double r0 = (e0 * e0) / (e1 * e1);
         double sbar = GetRoot2D(r0, z0, z1, g);
         x0 = r0 * y0 / (sbar + r0);
-        x1 = y1 / (sbar + 1.0);
+        x1 = y1 / (sbar + 1);
         distance = sqrt((x0 - y0) * (x0 - y0) + (x1 - y1) * (x1 - y1));
       } else {
         x0 = y0;
         x1 = y1;
-        distance = 0.0;
+        distance = 0;
       }
     } else {
-      x0 = 0.0;
+      x0 = 0;
       x1 = e1;
       distance = fabs(y1 - e1);
     }
@@ -506,7 +499,7 @@ double DistancePointEllipse(double e0, double e1, double y0, double y1, double &
       distance = sqrt((x0 - y0) * (x0 - y0) + x1 * x1);
     } else {
       x0 = e0;
-      x1 = 0.0;
+      x1 = 0;
       distance = fabs(y0 - e0);
     }
   }
@@ -514,26 +507,28 @@ double DistancePointEllipse(double e0, double e1, double y0, double y1, double &
 }
 
 /* ----------------------------------------------------------------------
-   static helper functions for the 3D case
+   functions for the 3D case
 ------------------------------------------------------------------------- */
 
-double GetRoot3D(double r0, double r1, double z0, double z1, double z2, double g)
+double RegEllipsoid::GetRoot3D(double r0, double r1, double z0, double z1, double z2, double g)
 {
-  const double n0 = r0 * z0;
-  const double n1 = r1 * z1;
-  double s0 = z2 - 1.0;
-  double s1 = (g < 0.0 ? 0.0 : sqrt(n0 * n0 + n1 * n1 + z2 * z2) - 1.0);
-  double s = 0.0;
+  int maxIterations =
+      std::numeric_limits<double>::digits - std::numeric_limits<double>::min_exponent;
+  double n0 = r0 * z0;
+  double n1 = r1 * z1;
+  double s0 = z2 - 1;
+  double s1 = (g < 0 ? 0 : sqrt(n0 * n0 + n1 * n1 + z2 * z2) - 1);
+  double s = 0;
   for (int i = 0; i < maxIterations; ++i) {
-    s = (s0 + s1) / 2.0;
+    s = (s0 + s1) / 2;
     if (s == s0 || s == s1) { break; }
-    const double ratio0 = n0 / (s + r0);
-    const double ratio1 = n1 / (s + r1);
-    const double ratio2 = z2 / (s + 1.0);
-    g = ratio0 * ratio0 + ratio1 * ratio1 + ratio2 * ratio2 - 1.0;
-    if ((g > 0.0) && (g > EPSILON)) {
+    double ratio0 = n0 / (s + r0);
+    double ratio1 = n1 / (s + r1);
+    double ratio2 = z2 / (s + 1);
+    g = ratio0 * ratio0 + ratio1 * ratio1 + ratio2 * ratio2 - 1;
+    if (g > 0) {
       s0 = s;
-    } else if ((g < 0.0) && (g < -EPSILON)) {
+    } else if (g < 0) {
       s1 = s;
     } else {
       break;
@@ -542,42 +537,42 @@ double GetRoot3D(double r0, double r1, double z0, double z1, double z2, double g
   return s;
 }
 
-double DistancePointEllipsoid(double e0, double e1, double e2, double y0, double y1, double y2,
-                              double &x0, double &x1, double &x2)
+double RegEllipsoid::DistancePointEllipsoid(double e0, double e1, double e2, double y0, double y1,
+                                            double y2, double &x0, double &x1, double &x2)
 {
   double distance;
-  if (y2 > 0.0) {
-    if (y1 > 0.0) {
-      if (y0 > 0.0) {
+  if (y2 > 0) {
+    if (y1 > 0) {
+      if (y0 > 0) {
         double z0 = y0 / e0;
         double z1 = y1 / e1;
         double z2 = y2 / e2;
-        double g = z0 * z0 + z1 * z1 + z2 * z2 - 1.0;
-        if (g != 0.0) {
+        double g = z0 * z0 + z1 * z1 + z2 * z2 - 1;
+        if (g != 0) {
           double r0 = e0 * e0 / (e2 * e2);
           double r1 = e1 * e1 / (e2 * e2);
           double sbar = GetRoot3D(r0, r1, z0, z1, z2, g);
           x0 = r0 * y0 / (sbar + r0);
           x1 = r1 * y1 / (sbar + r1);
-          x2 = y2 / (sbar + 1.0);
+          x2 = y2 / (sbar + 1);
           distance = sqrt((x0 - y0) * (x0 - y0) + (x1 - y1) * (x1 - y1) + (x2 - y2) * (x2 - y2));
         } else {
           x0 = y0;
           x1 = y1;
           x2 = y2;
-          distance = 0.0;
+          distance = 0;
         }
       } else {
-        x0 = 0.0;
+        x0 = 0;
         distance = DistancePointEllipse(e1, e2, y1, y2, x1, x2);
       }
     } else {
-      if (y0 > 0.0) {
-        x1 = 0.0;
+      if (y0 > 0) {
+        x1 = 0;
         distance = DistancePointEllipse(e0, e2, y0, y2, x0, x2);
       } else {
-        x0 = 0.0;
-        x1 = 0.0;
+        x0 = 0;
+        x1 = 0;
         x2 = e2;
         distance = fabs(y2 - e2);
       }
@@ -593,8 +588,8 @@ double DistancePointEllipsoid(double e0, double e1, double e2, double y0, double
       double xde1 = numer1 / denom1;
       double xde0sqr = xde0 * xde0;
       double xde1sqr = xde1 * xde1;
-      double discr = 1.0 - xde0sqr - xde1sqr;
-      if (discr > 0.0) {
+      double discr = 1 - xde0sqr - xde1sqr;
+      if (discr > 0) {
         x0 = e0 * xde0;
         x1 = e1 * xde1;
         x2 = e2 * sqrt(discr);
@@ -603,7 +598,7 @@ double DistancePointEllipsoid(double e0, double e1, double e2, double y0, double
       }
     }
     if (!computed) {
-      x2 = 0.0;
+      x2 = 0;
       distance = DistancePointEllipse(e0, e1, y0, y1, x0, x1);
     }
   }

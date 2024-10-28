@@ -20,7 +20,7 @@
 
 #include "error.h"
 #include "input.h"
-#include "memory.h"
+#include "modify.h"
 
 #include <cstring>
 
@@ -66,12 +66,11 @@ MDIPlugin::MDIPlugin(LAMMPS *_lmp, int narg, char **arg) : Pointers(_lmp)
       // do variable substitution in multiple word extra_arg
 
       int ncopy = strlen(extra_arg) + 1;
-      char *copy = (char *) memory->smalloc(ncopy,"mdi_plugin:copy");
-      strncpy(copy, extra_arg, ncopy);
-      char *work = (char *) memory->smalloc(ncopy,"mdi_plugin:work");
+      char *copy = utils::strdup(extra_arg);
+      char *work = new char[ncopy];
       int nwork = ncopy;
-      input->substitute(copy, work, ncopy, nwork, 0);
-      memory->sfree(work);
+      input->substitute(copy,work,ncopy,nwork,0);
+      delete[] work;
       extra_arg = copy;
 
       iarg += 2;
@@ -82,12 +81,11 @@ MDIPlugin::MDIPlugin(LAMMPS *_lmp, int narg, char **arg) : Pointers(_lmp)
       // do variable substitution in multiple word lammps_command
 
       int ncopy = strlen(lammps_command) + 1;
-      char *copy = (char *) memory->smalloc(ncopy,"mdi_plugin:work");
-      strncpy(copy, lammps_command, ncopy);
-      char *work = (char *) memory->smalloc(ncopy,"mdi_plugin:work");
+      char *copy = utils::strdup(lammps_command);
+      char *work = new char[ncopy];
       int nwork = ncopy;
-      input->substitute(copy, work, ncopy, nwork, 0);
-      memory->sfree(work);
+      input->substitute(copy,work,ncopy,nwork,0);
+      delete[] work;
       lammps_command = copy;
 
       iarg += 2;
@@ -127,8 +125,8 @@ MDIPlugin::MDIPlugin(LAMMPS *_lmp, int narg, char **arg) : Pointers(_lmp)
   MDI_Launch_plugin(plugin_name, plugin_args, &world, plugin_wrapper, (void *) this);
 
   delete[] plugin_args;
-  memory->sfree(extra_arg);
-  memory->sfree(lammps_command);
+  delete[] extra_arg;
+  delete[] lammps_command;
 }
 
 /* ----------------------------------------------------------------------

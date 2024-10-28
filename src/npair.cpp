@@ -174,9 +174,6 @@ void NPair::copy_stencil_info()
 
   nstencil_multi = ns->nstencil_multi;
   stencil_multi = ns->stencil_multi;
-
-  flag_half_multi = ns->flag_half_multi;
-  flag_same_multi = ns->flag_same_multi;
 }
 
 /* ----------------------------------------------------------------------
@@ -189,7 +186,6 @@ void NPair::build_setup()
   if (ns) copy_stencil_info();
 
   // set here, since build_setup() always called before build()
-
   last_build = update->ntimestep;
 }
 

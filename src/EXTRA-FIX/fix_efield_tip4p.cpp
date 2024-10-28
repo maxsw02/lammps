@@ -16,6 +16,7 @@
 #include "angle.h"
 #include "atom.h"
 #include "bond.h"
+#include "comm.h"
 #include "domain.h"
 #include "error.h"
 #include "force.h"
@@ -24,10 +25,11 @@
 #include "modify.h"
 #include "pair.h"
 #include "region.h"
+#include "respa.h"
 #include "update.h"
 #include "variable.h"
 
-#include <cmath>
+#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;

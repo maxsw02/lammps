@@ -35,7 +35,7 @@ class ComputeNBondAtom : public Compute {
   double memory_usage() override;
 
  private:
-  int nmax, btype;
+  int nmax;
   double *nbond;
 };
 

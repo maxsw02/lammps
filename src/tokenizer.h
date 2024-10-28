@@ -46,7 +46,6 @@ class Tokenizer {
   void skip(int n = 1);
   bool has_next() const;
   bool contains(const std::string &str) const;
-  bool matches(const std::string &str) const;
   std::string next();
 
   size_t count();
@@ -120,7 +119,6 @@ class ValueTokenizer {
 
   bool has_next() const;
   bool contains(const std::string &value) const;
-  bool matches(const std::string &str) const;
   void skip(int ntokens = 1);
 
   size_t count();

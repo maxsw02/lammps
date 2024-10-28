@@ -76,6 +76,7 @@ class AtomVecLine : public AtomVec {
 
   void grow_bonus();
   void copy_bonus_all(int, int);
+  // void consistency_check(int, char *);
 };
 
 }    // namespace LAMMPS_NS

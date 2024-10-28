@@ -34,7 +34,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int MAXLINE = 1024;
+#define MAXLINE 1024
 
 static const int nkeywords = 22;
 static const char *keywords[] = {
@@ -251,10 +251,11 @@ void PairMEAM::coeff(int narg, char **arg)
 
   nlibelements = paridx - 3;
   if (nlibelements < 1) error->all(FLERR, "Incorrect args for pair coefficients");
-  if (nlibelements > MAXELT)
+  if (nlibelements > maxelt)
     error->all(FLERR,
                "Too many elements extracted from MEAM library (current limit: {}). "
-               "Increase 'MAXELT' in meam.h and recompile.", MAXELT);
+               "Increase 'maxelt' in meam.h and recompile.",
+               maxelt);
 
   for (int i = 0; i < nlibelements; i++) {
     if (std::any_of(libelements.begin(), libelements.end(), [&](const std::string &elem) {
@@ -547,16 +548,16 @@ void PairMEAM::read_user_meam_file(const std::string &userfile)
 
   // open user param file on proc 0
 
-  PotentialFileReader *reader = nullptr;
+  std::shared_ptr<PotentialFileReader> reader;
 
-  if (comm->me == 0) reader = new PotentialFileReader(lmp, userfile, "MEAM");
+  if (comm->me == 0) { reader = std::make_shared<PotentialFileReader>(lmp, userfile, "MEAM"); }
 
   // read settings
   // pass them one at a time to MEAM package
   // match strings to list of corresponding ints
   char *line = nullptr;
   char buffer[MAXLINE];
-  int lineno = 0;
+
   while (true) {
     int which;
     int nindex, index[3];
@@ -564,7 +565,6 @@ void PairMEAM::read_user_meam_file(const std::string &userfile)
     int nline;
     if (comm->me == 0) {
       line = reader->next_line();
-      ++lineno;
       if (line == nullptr) {
         nline = -1;
       } else
@@ -584,32 +584,20 @@ void PairMEAM::read_user_meam_file(const std::string &userfile)
     for (which = 0; which < nkeywords; which++)
       if (keyword == keywords[which]) break;
     if (which == nkeywords)
-      error->all(FLERR, "Keyword {} in MEAM parameter file {}:{} not recognized", keyword,
-                 userfile, lineno);
+      error->all(FLERR, "Keyword {} in MEAM parameter file not recognized", keyword);
 
-    try {
-      nindex = nparams - 2;
-      for (int i = 0; i < nindex; i++) index[i] = values.next_int() - 1;
-    } catch (std::exception &e) {
-      error->all(FLERR, "Error parsing MEAM parameter file {}:{}: {}", userfile, lineno, e.what());
-    }
+    nindex = nparams - 2;
+    for (int i = 0; i < nindex; i++) index[i] = values.next_int() - 1;
 
     // map lattce_meam value to an integer
     if (which == 4) {
       std::string lattice_type = values.next_string();
       lattice_t latt;
       if (!MEAM::str_to_lat(lattice_type, false, latt))
-        error->all(FLERR, "Unrecognized lattice type {} in MEAM parameter file {}:{}",
-                   lattice_type, userfile, lineno);
+        error->all(FLERR, "Unrecognized lattice type in MEAM parameter file: {}", lattice_type);
       value = latt;
-    } else {
-      try {
-        value = values.next_double();
-      } catch (std::exception &e) {
-        error->all(FLERR, "Error parsing MEAM parameter file {}:{}: {}", userfile, lineno,
-                   e.what());
-      }
-    }
+    } else
+      value = values.next_double();
 
     // pass single setting to MEAM package
 
@@ -619,11 +607,9 @@ void PairMEAM::read_user_meam_file(const std::string &userfile)
       const char *descr[] = {"has an unknown error", "is out of range (please report a bug)",
                              "expected more indices", "has out of range element index"};
       if ((errorflag < 0) || (errorflag > 3)) errorflag = 0;
-      error->all(FLERR, "Error in MEAM parameter file {}:{}: keyword {} {}", userfile, lineno,
-                 keyword, descr[errorflag]);
+      error->all(FLERR, "Error in MEAM parameter file: keyword {} {}", keyword, descr[errorflag]);
     }
   }
-  if (comm->me == 0) delete reader;
 }
 
 /* ---------------------------------------------------------------------- */

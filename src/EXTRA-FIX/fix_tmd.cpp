@@ -32,13 +32,12 @@
 
 #include <cmath>
 #include <cstring>
-#include <exception>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr int CHUNK = 1000;
-static constexpr int MAXLINE = 256;
+#define CHUNK 1000
+#define MAXLINE 256
 
 /* ---------------------------------------------------------------------- */
 

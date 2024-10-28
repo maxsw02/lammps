@@ -18,18 +18,20 @@
 
 #include "fix_nvt_sllod_kokkos.h"
 
+#include "atom.h"
+#include "atom.h"
 #include "atom_kokkos.h"
 #include "atom_masks.h"
 #include "compute.h"
 #include "domain.h"
 #include "error.h"
-#include "fix_deform.h"
+#include "fix.h"
+#include "fix_deform_kokkos.h"
 #include "group.h"
 #include "kokkos_few.h"
 #include "math_extra.h"
+#include "memory_kokkos.h"
 #include "modify.h"
-
-#include <cstring>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
@@ -68,10 +70,6 @@ FixNVTSllodKokkos<DeviceType>::FixNVTSllodKokkos(LAMMPS *lmp, int narg, char **a
   this->modify->add_compute(fmt::format("{} {} temp/deform/kk",this->id_temp,this->group->names[this->igroup]));
   this->tcomputeflag = 1;
   this->nondeformbias = 0;
-
-  this->execution_space = ExecutionSpaceFromDevice<DeviceType>::space;
-  this->datamask_read =  EMPTY_MASK;
-  this->datamask_modify = EMPTY_MASK;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -93,7 +91,7 @@ void FixNVTSllodKokkos<DeviceType>::init()
   if (deform.size() < 1)
     this->error->all(FLERR,"Using fix nvt/sllod/kk with no fix deform defined");
 
-  for (auto &ifix : deform) {
+  for (auto ifix : deform) {
     auto f = dynamic_cast<FixDeform *>(ifix);
     if (f && (f->remapflag != Domain::V_REMAP))
       this->error->all(FLERR,"Using fix ntv/sllod/kk with inconsistent fix deform remap option");
@@ -118,7 +116,6 @@ void FixNVTSllodKokkos<DeviceType>::nh_v_temp()
     atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
     this->temperature->compute_scalar();
     atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
-    atomKK->sync(this->execution_space,this->temperature->datamask_modify);
   }
 
   v = atomKK->k_v.view<DeviceType>();
@@ -131,17 +128,13 @@ void FixNVTSllodKokkos<DeviceType>::nh_v_temp()
 
   d_h_two = Few<double, 6>(h_two);
 
-  if ((int)vdelu.extent(0) < atomKK->nmax)
+  if (vdelu.extent(0) < atomKK->nmax)
     vdelu = typename AT::t_v_array(Kokkos::NoInit("nvt/sllod/kk:vdelu"), atomKK->nmax);
 
   if (!this->psllod_flag) {
-    if (this->temperature->kokkosable) this->temperature->remove_bias_all_kk();
-    else {
-      atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
-      this->temperature->remove_bias_all();
-      atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
-      atomKK->sync(this->execution_space,this->temperature->datamask_modify);
-    }
+    atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
+    this->temperature->remove_bias_all();
+    atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
   }
 
   atomKK->sync(this->execution_space,V_MASK | MASK_MASK);
@@ -151,13 +144,9 @@ void FixNVTSllodKokkos<DeviceType>::nh_v_temp()
   this->copymode = 0;
 
   if (this->psllod_flag) {
-    if (this->temperature->kokkosable) this->temperature->remove_bias_all_kk();
-    else {
-      atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
-      this->temperature->remove_bias_all();
-      atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
-      atomKK->sync(this->execution_space,this->temperature->datamask_modify);
-    }
+    atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
+    this->temperature->remove_bias_all();
+    atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
   }
 
   atomKK->sync(this->execution_space,V_MASK | MASK_MASK);
@@ -168,13 +157,9 @@ void FixNVTSllodKokkos<DeviceType>::nh_v_temp()
 
   atomKK->modified(this->execution_space,V_MASK);
 
-  if (this->temperature->kokkosable) this->temperature->restore_bias_all();
-  else {
-    atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
-    this->temperature->restore_bias_all();
-    atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
-    atomKK->sync(this->execution_space,this->temperature->datamask_modify);
-  }
+  atomKK->sync(this->temperature->execution_space,this->temperature->datamask_read);
+  this->temperature->restore_bias_all();
+  atomKK->modified(this->temperature->execution_space,this->temperature->datamask_modify);
 }
 
 template<class DeviceType>

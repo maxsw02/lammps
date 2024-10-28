@@ -33,7 +33,6 @@
 
 #include <cmath>
 #include <cstring>
-#include <exception>
 
 using namespace LAMMPS_NS;
 using namespace FixConst;
@@ -125,10 +124,11 @@ void FixACKS2ReaxFF::post_constructor()
 
 void FixACKS2ReaxFF::pertype_parameters(char *arg)
 {
-  if (utils::strmatch(arg,"^reaxff")) {
+  // match either new keyword "reaxff" or old keyword "reax/c"
+  if (utils::strmatch(arg,"^reax..$")) {
     reaxflag = 1;
-    Pair *pair = force->pair_match("^reaxff",0);
-    if (!pair) error->all(FLERR,"No reaxff pair style for fix acks2/reaxff");
+    Pair *pair = force->pair_match("^reax..",0);
+    if (!pair) error->all(FLERR,"No reaxff pair style for fix qeq/reaxff");
 
     int tmp;
     chi = (double *) pair->extract("chi",tmp);

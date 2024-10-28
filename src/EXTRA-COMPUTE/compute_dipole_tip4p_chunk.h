@@ -23,6 +23,7 @@ ComputeStyle(dipole/tip4p/chunk,ComputeDipoleTIP4PChunk);
 #include "compute_chunk.h"
 
 namespace LAMMPS_NS {
+class Fix;
 
 class ComputeDipoleTIP4PChunk : public ComputeChunk {
  public:

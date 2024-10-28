@@ -491,11 +491,11 @@ void FixRigidOMP::set_xv_thr()
     double theta_body,theta;
     double ione[3],exone[3],eyone[3],ezone[3],p[3][3];
 
-    AtomVecEllipsoid::Bonus *ebonus = nullptr;
+    AtomVecEllipsoid::Bonus *ebonus;
     if (avec_ellipsoid) ebonus = avec_ellipsoid->bonus;
-    AtomVecLine::Bonus *lbonus = nullptr;
+    AtomVecLine::Bonus *lbonus;
     if (avec_line) lbonus = avec_line->bonus;
-    AtomVecTri::Bonus *tbonus = nullptr;
+    AtomVecTri::Bonus *tbonus;
     if (avec_tri) tbonus = avec_tri->bonus;
     double **omega_one = atom->omega;
     double **angmom_one = atom->angmom;

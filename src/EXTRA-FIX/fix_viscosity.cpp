@@ -32,7 +32,7 @@ using namespace FixConst;
 
 // needs to be big, but not so big that lose precision when subtract velocity
 
-static constexpr double BIG = 1.0e10;
+#define BIG 1.0e10
 
 /* ---------------------------------------------------------------------- */
 

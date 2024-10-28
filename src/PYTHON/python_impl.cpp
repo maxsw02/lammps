@@ -17,6 +17,7 @@
 
 #include "python_impl.h"
 
+#include "comm.h"
 #include "error.h"
 #include "input.h"
 #include "memory.h"
@@ -86,6 +87,8 @@ PythonImpl::PythonImpl(LAMMPS *lmp) : Pointers(lmp)
   // Python Global configuration variable
   Py_UnbufferedStdioFlag = unbuffered;
 #endif
+#else
+#warning Cannot force stdout and stderr to be unbuffered
 #endif
 
 #ifdef MLIAP_PYTHON
@@ -341,7 +344,7 @@ void PythonImpl::invoke_function(int ifunc, char *result)
         if (!str)
           error->all(FLERR, "Could not evaluate Python function {} input variable: {}",
                      pfuncs[ifunc].name, pfuncs[ifunc].svalue[i]);
-        pValue = PY_INT_FROM_LONG(PY_LONG_FROM_STRING(str));
+        pValue = PY_INT_FROM_LONG(atoi(str));
       } else {
         pValue = PY_INT_FROM_LONG(pfuncs[ifunc].ivalue[i]);
       }
@@ -351,7 +354,7 @@ void PythonImpl::invoke_function(int ifunc, char *result)
         if (!str)
           error->all(FLERR, "Could not evaluate Python function {} input variable: {}",
                      pfuncs[ifunc].name, pfuncs[ifunc].svalue[i]);
-        pValue = PyFloat_FromDouble(std::stod(str));
+        pValue = PyFloat_FromDouble(atof(str));
       } else {
         pValue = PyFloat_FromDouble(pfuncs[ifunc].dvalue[i]);
       }

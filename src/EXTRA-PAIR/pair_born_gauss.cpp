@@ -18,8 +18,10 @@
 #include "atom.h"
 #include "comm.h"
 #include "error.h"
+#include "fix.h"
 #include "force.h"
 #include "memory.h"
+#include "modify.h"
 #include "neigh_list.h"
 
 #include <cmath>

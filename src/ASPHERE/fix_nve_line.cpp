@@ -23,7 +23,7 @@ using namespace LAMMPS_NS;
 using namespace FixConst;
 using namespace MathConst;
 
-static constexpr double INERTIA = (1.0/12.0);     // moment of inertia prefactor for line segment
+#define INERTIA (1.0/12.0)     // moment of inertia prefactor for line segment
 
 /* ---------------------------------------------------------------------- */
 

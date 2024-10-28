@@ -14,6 +14,7 @@
 #ifdef PAIR_CLASS
 // clang-format off
 PairStyle(meam,PairMEAM);
+PairStyle(meam/c,PairMEAM);
 // clang-format on
 #else
 

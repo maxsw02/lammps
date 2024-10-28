@@ -40,7 +40,7 @@ using namespace MathConst;
 using namespace MathSpecial;
 using namespace MathExtra;
 
-static constexpr int DELTA = 4;
+#define DELTA 4
 
 /* ---------------------------------------------------------------------- */
 

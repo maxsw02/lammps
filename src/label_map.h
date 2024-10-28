@@ -22,8 +22,6 @@ namespace LAMMPS_NS {
 
 class LabelMap : protected Pointers {
   friend class AtomVec;
-  friend class DumpCustom;
-  friend class DumpXYZ;
   friend class ReadData;
 
  public:

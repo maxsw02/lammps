@@ -35,8 +35,6 @@ class ComputeMSDChunk : public ComputeChunk {
   double memory_usage() override;
 
  private:
-  int msdnchunk;
-
   char *id_fix;
   class FixStoreGlobal *fix;
 

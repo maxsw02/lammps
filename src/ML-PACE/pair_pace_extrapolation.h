@@ -28,6 +28,7 @@ PairStyle(pace/extrapolation,PairPACEExtrapolation)
 #define LMP_PAIR_PACE_AL_H
 
 #include "pair.h"
+#include <vector>
 
 namespace LAMMPS_NS {
 
@@ -46,15 +47,13 @@ class PairPACEExtrapolation : public Pair {
 
  protected:
   struct ACEALImpl *aceimpl;
-  int nmax, nmax_corerep;
+  int nmax;
 
   virtual void allocate();
   std::vector<std::string> element_names;    // list of elements (used by dump pace/extrapolation)
   double *extrapolation_grade_gamma;         //per-atom gamma value
-  double *corerep_factor;                    //per-atom core-rep factor (= 1 - fcut)
 
   int flag_compute_extrapolation_grade;
-  int flag_corerep_factor;
 
   double **scale;
 

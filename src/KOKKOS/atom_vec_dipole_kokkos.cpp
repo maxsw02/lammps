@@ -16,6 +16,7 @@
 
 #include "atom_kokkos.h"
 #include "atom_masks.h"
+#include "comm_kokkos.h"
 #include "domain.h"
 #include "error.h"
 #include "fix.h"
@@ -135,7 +136,8 @@ struct AtomVecDipoleKokkos_PackComm {
   typename ArrayTypes<DeviceType>::t_x_array_randomread _x;
   typename ArrayTypes<DeviceType>::t_mu_array_randomread _mu;
   typename ArrayTypes<DeviceType>::t_xfloat_2d_um _buf;
-  typename ArrayTypes<DeviceType>::t_int_1d_const _list;
+  typename ArrayTypes<DeviceType>::t_int_2d_const _list;
+  const int _iswap;
   X_FLOAT _xprd,_yprd,_zprd,_xy,_xz,_yz;
   X_FLOAT _pbc[6];
 
@@ -143,12 +145,13 @@ struct AtomVecDipoleKokkos_PackComm {
       const typename DAT::tdual_x_array &x,
       const typename DAT::tdual_float_1d_4 &mu,
       const typename DAT::tdual_xfloat_2d &buf,
-      const typename DAT::tdual_int_1d &list,
+      const typename DAT::tdual_int_2d &list,
+      const int & iswap,
       const X_FLOAT &xprd, const X_FLOAT &yprd, const X_FLOAT &zprd,
       const X_FLOAT &xy, const X_FLOAT &xz, const X_FLOAT &yz, const int* const pbc):
       _x(x.view<DeviceType>()),
       _mu(mu.view<DeviceType>()),
-      _list(list.view<DeviceType>()),
+      _list(list.view<DeviceType>()),_iswap(iswap),
       _xprd(xprd),_yprd(yprd),_zprd(zprd),
       _xy(xy),_xz(xz),_yz(yz) {
         const size_t elements = 7; // size_forward
@@ -160,7 +163,7 @@ struct AtomVecDipoleKokkos_PackComm {
 
   KOKKOS_INLINE_FUNCTION
   void operator() (const int& i) const {
-    const int j = _list(i);
+    const int j = _list(_iswap,i);
     if (PBC_FLAG == 0) {
       _buf(i,0) = _x(j,0);
       _buf(i,1) = _x(j,1);
@@ -198,7 +201,8 @@ struct AtomVecDipoleKokkos_PackBorder {
   typedef DeviceType device_type;
 
   typename ArrayTypes<DeviceType>::t_xfloat_2d _buf;
-  const typename ArrayTypes<DeviceType>::t_int_1d_const _list;
+  const typename ArrayTypes<DeviceType>::t_int_2d_const _list;
+  const int _iswap;
   const typename ArrayTypes<DeviceType>::t_x_array_randomread _x;
   const typename ArrayTypes<DeviceType>::t_tagint_1d _tag;
   const typename ArrayTypes<DeviceType>::t_int_1d _type;
@@ -209,7 +213,8 @@ struct AtomVecDipoleKokkos_PackBorder {
 
   AtomVecDipoleKokkos_PackBorder(
       const typename ArrayTypes<DeviceType>::t_xfloat_2d &buf,
-      const typename ArrayTypes<DeviceType>::t_int_1d_const &list,
+      const typename ArrayTypes<DeviceType>::t_int_2d_const &list,
+      const int & iswap,
       const typename ArrayTypes<DeviceType>::t_x_array &x,
       const typename ArrayTypes<DeviceType>::t_tagint_1d &tag,
       const typename ArrayTypes<DeviceType>::t_int_1d &type,
@@ -217,13 +222,13 @@ struct AtomVecDipoleKokkos_PackBorder {
       const typename ArrayTypes<DeviceType>::t_float_1d &q,
       const typename ArrayTypes<DeviceType>::t_mu_array_randomread &mu,
       const X_FLOAT &dx, const X_FLOAT &dy, const X_FLOAT &dz):
-      _buf(buf),_list(list),
+      _buf(buf),_list(list),_iswap(iswap),
       _x(x),_tag(tag),_type(type),_mask(mask),_q(q),_mu(mu),
       _dx(dx),_dy(dy),_dz(dz) {}
 
   KOKKOS_INLINE_FUNCTION
   void operator() (const int& i) const {
-      const int j = _list(i);
+      const int j = _list(_iswap,i);
       if (PBC_FLAG == 0) {
           _buf(i,0) = _x(j,0);
           _buf(i,1) = _x(j,1);
@@ -254,7 +259,7 @@ struct AtomVecDipoleKokkos_PackBorder {
 
 /* ---------------------------------------------------------------------- */
 
-int AtomVecDipoleKokkos::pack_border_kokkos(int n, DAT::tdual_int_1d k_sendlist, DAT::tdual_xfloat_2d buf,
+int AtomVecDipoleKokkos::pack_border_kokkos(int n, DAT::tdual_int_2d k_sendlist, DAT::tdual_xfloat_2d buf,int iswap,
                                int pbc_flag, int *pbc, ExecutionSpace space)
 {
   X_FLOAT dx,dy,dz;
@@ -272,12 +277,12 @@ int AtomVecDipoleKokkos::pack_border_kokkos(int n, DAT::tdual_int_1d k_sendlist,
     if (space==Host) {
       AtomVecDipoleKokkos_PackBorder<LMPHostType,1> f(
         buf.view<LMPHostType>(), k_sendlist.view<LMPHostType>(),
-        h_x,h_tag,h_type,h_mask,h_q,h_mu,dx,dy,dz);
+        iswap,h_x,h_tag,h_type,h_mask,h_q,h_mu,dx,dy,dz);
       Kokkos::parallel_for(n,f);
     } else {
       AtomVecDipoleKokkos_PackBorder<LMPDeviceType,1> f(
         buf.view<LMPDeviceType>(), k_sendlist.view<LMPDeviceType>(),
-        d_x,d_tag,d_type,d_mask,d_q,d_mu,dx,dy,dz);
+        iswap,d_x,d_tag,d_type,d_mask,d_q,d_mu,dx,dy,dz);
       Kokkos::parallel_for(n,f);
     }
 
@@ -286,12 +291,12 @@ int AtomVecDipoleKokkos::pack_border_kokkos(int n, DAT::tdual_int_1d k_sendlist,
     if (space==Host) {
       AtomVecDipoleKokkos_PackBorder<LMPHostType,0> f(
         buf.view<LMPHostType>(), k_sendlist.view<LMPHostType>(),
-        h_x,h_tag,h_type,h_mask,h_q,h_mu,dx,dy,dz);
+        iswap,h_x,h_tag,h_type,h_mask,h_q,h_mu,dx,dy,dz);
       Kokkos::parallel_for(n,f);
     } else {
       AtomVecDipoleKokkos_PackBorder<LMPDeviceType,0> f(
         buf.view<LMPDeviceType>(), k_sendlist.view<LMPDeviceType>(),
-        d_x,d_tag,d_type,d_mask,d_q,d_mu,dx,dy,dz);
+        iswap,d_x,d_tag,d_type,d_mask,d_q,d_mu,dx,dy,dz);
       Kokkos::parallel_for(n,f);
     }
   }
@@ -393,6 +398,7 @@ struct AtomVecDipoleKokkos_PackExchangeFunctor {
       const typename AT::tdual_xfloat_2d buf,
       typename AT::tdual_int_1d sendlist,
       typename AT::tdual_int_1d copylist):
+    _size_exchange(atom->avecKK->size_exchange),
     _x(atom->k_x.view<DeviceType>()),
     _v(atom->k_v.view<DeviceType>()),
     _tag(atom->k_tag.view<DeviceType>()),
@@ -410,8 +416,7 @@ struct AtomVecDipoleKokkos_PackExchangeFunctor {
     _qw(atom->k_q.view<DeviceType>()),
     _muw(atom->k_mu.view<DeviceType>()),
     _sendlist(sendlist.template view<DeviceType>()),
-    _copylist(copylist.template view<DeviceType>()),
-    _size_exchange(atom->avecKK->size_exchange) {
+    _copylist(copylist.template view<DeviceType>()) {
     const int maxsendlist = (buf.template view<DeviceType>().extent(0)*
                              buf.template view<DeviceType>().extent(1))/_size_exchange;
 
@@ -510,6 +515,7 @@ struct AtomVecDipoleKokkos_UnpackExchangeFunctor {
       const typename AT::tdual_xfloat_2d buf,
       typename AT::tdual_int_1d nlocal,
       int dim, X_FLOAT lo, X_FLOAT hi):
+      _size_exchange(atom->avecKK->size_exchange),
       _x(atom->k_x.view<DeviceType>()),
       _v(atom->k_v.view<DeviceType>()),
       _tag(atom->k_tag.view<DeviceType>()),
@@ -518,8 +524,8 @@ struct AtomVecDipoleKokkos_UnpackExchangeFunctor {
       _image(atom->k_image.view<DeviceType>()),
       _q(atom->k_q.view<DeviceType>()),
       _mu(atom->k_mu.view<DeviceType>()),
-      _nlocal(nlocal.template view<DeviceType>()),
-      _dim(dim),_lo(lo),_hi(hi),_size_exchange(atom->avecKK->size_exchange) {
+      _nlocal(nlocal.template view<DeviceType>()),_dim(dim),
+      _lo(lo),_hi(hi) {
     const int maxsendlist = (buf.template view<DeviceType>().extent(0)*buf.template view<DeviceType>().extent(1))/_size_exchange;
 
     buffer_view<DeviceType>(_buf,buf,maxsendlist,_size_exchange);
@@ -551,8 +557,8 @@ struct AtomVecDipoleKokkos_UnpackExchangeFunctor {
 
 /* ---------------------------------------------------------------------- */
 int AtomVecDipoleKokkos::unpack_exchange_kokkos(DAT::tdual_xfloat_2d &k_buf, int nrecv, int nlocal,
-                                                int dim, X_FLOAT lo, X_FLOAT hi, ExecutionSpace space,
-                                                DAT::tdual_int_1d &/*k_indices*/)
+                                               int dim, X_FLOAT lo, X_FLOAT hi, ExecutionSpace space,
+                                               DAT::tdual_int_1d &k_indices)
 {
   if (space == Host) {
     k_count.h_view(0) = nlocal;

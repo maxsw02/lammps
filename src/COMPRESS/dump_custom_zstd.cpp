@@ -122,7 +122,7 @@ void DumpCustomZstd::write_header(bigint ndump)
     }
     header += fmt::format("ITEM: ATOMS {}\n", columns);
 
-    (void) writer.write(header.c_str(), header.length());
+    writer.write(header.c_str(), header.length());
   }
 }
 
@@ -131,7 +131,7 @@ void DumpCustomZstd::write_header(bigint ndump)
 void DumpCustomZstd::write_data(int n, double *mybuf)
 {
   if (buffer_flag == 1) {
-    (void) writer.write(mybuf, n);
+    writer.write(mybuf, n);
   } else {
     constexpr size_t VBUFFER_SIZE = 256;
     char vbuffer[VBUFFER_SIZE];
@@ -150,13 +150,13 @@ void DumpCustomZstd::write_data(int n, double *mybuf)
         }
 
         if (written > 0) {
-          (void) writer.write(vbuffer, written);
+          writer.write(vbuffer, written);
         } else if (written < 0) {
           error->one(FLERR, "Error while writing dump custom/gz output");
         }
         m++;
       }
-      (void) writer.write("\n", 1);
+      writer.write("\n", 1);
     }
   }
 }

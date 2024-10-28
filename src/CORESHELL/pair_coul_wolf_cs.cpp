@@ -24,7 +24,7 @@
 using namespace LAMMPS_NS;
 using namespace MathConst;
 
-static constexpr double EPSILON = 1.0e-20;
+#define EPSILON 1.0e-20
 
 /* ---------------------------------------------------------------------- */
 

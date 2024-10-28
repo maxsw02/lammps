@@ -33,7 +33,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int DELTA = 4;
+#define DELTA 4
 
 /* ---------------------------------------------------------------------- */
 

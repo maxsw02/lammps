@@ -16,6 +16,7 @@
    Contributing author: Andres Jaramillo-Botero (Caltech)
 ------------------------------------------------------------------------- */
 
+
 #include "fix_nh_eff.h"
 
 #include "atom.h"
@@ -61,7 +62,7 @@ void FixNHEff::nve_v()
     if (mask[i] & groupbit) {
       if (abs(spin[i])==1) {
         dtfm = dtf / mass[type[i]];
-        ervel[i] += dtfm * erforce[i] / mefactor;
+        ervel[i] = dtfm * erforce[i] / mefactor;
       }
     }
   }
@@ -78,26 +79,15 @@ void FixNHEff::nve_x()
   FixNH::nve_x();
 
   double *eradius = atom->eradius;
-  double *erforce = atom->erforce;
   double *ervel = atom->ervel;
-  double *mass = atom->mass;
-  int *type = atom->type;
   int *spin = atom->spin;
   int *mask = atom->mask;
   int nlocal = atom->nlocal;
   if (igroup == atom->firstgroup) nlocal = atom->nfirst;
 
-  double mefactor = domain->dimension/4.0;
-  double dtfm;
-
   for (int i = 0; i < nlocal; i++)
-    if (mask[i] & groupbit) {
-      dtfm = dtf / mass[type[i]];
-      if (abs(spin[i])==1) {
-        ervel[i] += dtfm * erforce[i] / mefactor;
-        eradius[i] += dtv * ervel[i];
-      }
-    }
+    if (mask[i] & groupbit)
+      if (abs(spin[i])==1) eradius[i] += dtv * ervel[i];
 }
 
 /* ----------------------------------------------------------------------

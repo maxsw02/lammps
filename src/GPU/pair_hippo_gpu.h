@@ -1,7 +1,7 @@
 /* -*- c++ -*- ----------------------------------------------------------
    LAMMPS - Large-scale Atomic/Molecular Massively Parallel Simulator
    https://www.lammps.org/, Sandia National Laboratories
-   LAMMPS development team: developers@lammps.org
+   LAMMPS Development team: developers@lammps.org
 
    Copyright (2003) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
@@ -65,7 +65,8 @@ class PairHippoGPU : public PairAmoeba {
 
   void udirect2b_cpu();
 
-  template <class numtyp> void compute_force_from_torque(const numtyp *, double **, double *);
+  template<class numtyp>
+  void compute_force_from_torque(const numtyp*, double**, double*);
 };
 
 }    // namespace LAMMPS_NS

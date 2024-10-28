@@ -37,7 +37,6 @@ class BondHarmonicKokkos : public BondHarmonic {
  public:
   typedef DeviceType device_type;
   typedef EV_FLOAT value_type;
-  typedef ArrayTypes<DeviceType> AT;
 
   BondHarmonicKokkos(class LAMMPS *);
   ~BondHarmonicKokkos() override;
@@ -63,6 +62,7 @@ class BondHarmonicKokkos : public BondHarmonic {
 
   class NeighborKokkos *neighborKK;
 
+  typedef ArrayTypes<DeviceType> AT;
   typename AT::t_x_array_randomread x;
   typename Kokkos::View<double*[3],typename AT::t_f_array::array_layout,typename KKDevice<DeviceType>::value,Kokkos::MemoryTraits<Kokkos::Atomic> > f;
   typename AT::t_int_2d bondlist;

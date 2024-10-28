@@ -32,7 +32,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int MAXLINE = 1024;        // This sets the maximum line length in EAM input files.
+#define MAXLINE 1024        // This sets the maximum line length in EAM input files.
 
 PairEAMCD::PairEAMCD(LAMMPS *lmp, int _cdeamVersion)
   : PairEAM(lmp), PairEAMAlloy(lmp), cdeamVersion(_cdeamVersion)

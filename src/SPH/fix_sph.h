@@ -30,7 +30,6 @@ class FixSPH : public Fix {
   int setmask() override;
   void init() override;
   void setup_pre_force(int) override;
-  void pre_force(int) override;
   void initial_integrate(int) override;
   void final_integrate() override;
   void reset_dt() override;
@@ -42,7 +41,6 @@ class FixSPH : public Fix {
   double dtv, dtf;
   double *step_respa;
   int mass_require;
-  int remap_v_flag;
 
   class Pair *pair;
 };

@@ -33,7 +33,7 @@
 using namespace LAMMPS_NS;
 using namespace FixConst;
 
-static constexpr double TILTMAX = 1.5;
+#define TILTMAX 1.5
 
 enum{NOBIAS,BIAS};
 enum{ISO,ANISO,TRICLINIC};
@@ -129,7 +129,9 @@ void FixNHGPU::remap()
     }
   }
 
-  for (auto &ifix : rfix) ifix->deform(0);
+  if (nrigid)
+    for (int i = 0; i < nrigid; i++)
+      modify->fix[rfix[i]]->deform(0);
 
   // reset global and local box to new size/shape
 
@@ -302,7 +304,9 @@ void FixNHGPU::remap()
     }
   }
 
-  for (auto &ifix : rfix) ifix->deform(1);
+  if (nrigid)
+    for (int i = 0; i < nrigid; i++)
+      modify->fix[rfix[i]]->deform(1);
 }
 
 /* ----------------------------------------------------------------------

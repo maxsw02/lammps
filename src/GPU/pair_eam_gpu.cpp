@@ -29,6 +29,8 @@
 
 #include <cmath>
 
+#define MAXLINE 1024
+
 using namespace LAMMPS_NS;
 
 // External functions from cuda library for atom decomposition

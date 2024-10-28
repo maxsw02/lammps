@@ -29,7 +29,6 @@
 #include "neighbor.h"
 
 #include <cmath>
-#include <exception>
 
 #include "Lepton.h"
 #include "lepton_utils.h"
@@ -93,17 +92,10 @@ template <int EVFLAG, int EFLAG, int NEWTON_BOND> void DihedralLepton::eval()
 {
   std::vector<Lepton::CompiledExpression> dihedralforce;
   std::vector<Lepton::CompiledExpression> dihedralpot;
-  std::vector<bool> has_ref;
   try {
     for (const auto &expr : expressions) {
       auto parsed = Lepton::Parser::parse(LeptonUtils::substitute(expr, lmp));
       dihedralforce.emplace_back(parsed.differentiate("phi").createCompiledExpression());
-      has_ref.push_back(true);
-      try {
-        dihedralforce.back().getVariableReference("phi");
-      } catch (Lepton::Exception &) {
-        has_ref.back() = false;
-      }
       if (EFLAG) dihedralpot.emplace_back(parsed.createCompiledExpression());
     }
   } catch (std::exception &e) {
@@ -286,7 +278,7 @@ template <int EVFLAG, int EFLAG, int NEWTON_BOND> void DihedralLepton::eval()
     }
 
     const int idx = type2expression[type];
-    if (has_ref[idx]) dihedralforce[idx].getVariableReference("phi") = phi;
+    dihedralforce[idx].getVariableReference("phi") = phi;
     double m_du_dphi = -dihedralforce[idx].evaluate();
 
     // ----- Step 4: Calculate the force direction in real space -----
@@ -330,11 +322,7 @@ template <int EVFLAG, int EFLAG, int NEWTON_BOND> void DihedralLepton::eval()
 
     double edihedral = 0.0;
     if (EFLAG) {
-      try {
-        dihedralpot[idx].getVariableReference("phi") = phi;
-      } catch (Lepton::Exception &) {
-        ;    // ignore -> constant potential
-      }
+      dihedralpot[idx].getVariableReference("phi") = phi;
       edihedral = dihedralpot[idx].evaluate();
     }
     if (EVFLAG)
@@ -374,18 +362,8 @@ void DihedralLepton::coeff(int narg, char **arg)
     auto parsed = Lepton::Parser::parse(LeptonUtils::substitute(exp_one, lmp));
     auto dihedralpot = parsed.createCompiledExpression();
     auto dihedralforce = parsed.differentiate("phi").createCompiledExpression();
-    try {
-      dihedralpot.getVariableReference("phi") = 0.0;
-    } catch (Lepton::Exception &) {
-      if (comm->me == 0)
-        error->warning(FLERR, "Lepton potential expression {} does not depend on 'phi'", exp_one);
-    }
-    try {
-      dihedralforce.getVariableReference("phi") = 0.0;
-    } catch (Lepton::Exception &) {
-      if (comm->me == 0)
-        error->warning(FLERR, "Force from Lepton expression {} does not depend on 'phi'", exp_one);
-    }
+    dihedralpot.getVariableReference("phi") = 0.0;
+    dihedralforce.getVariableReference("phi") = 0.0;
     dihedralforce.evaluate();
   } catch (std::exception &e) {
     error->all(FLERR, e.what());

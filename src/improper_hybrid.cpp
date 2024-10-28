@@ -24,7 +24,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int EXTRA = 1000;
+#define EXTRA 1000
 
 /* ---------------------------------------------------------------------- */
 
@@ -48,7 +48,14 @@ ImproperHybrid::~ImproperHybrid()
     delete[] keywords;
   }
 
-  deallocate();
+  if (allocated) {
+    memory->destroy(setflag);
+    memory->destroy(map);
+    delete[] nimproperlist;
+    delete[] maximproper;
+    for (int i = 0; i < nstyles; i++) memory->destroy(improperlist[i]);
+    delete[] improperlist;
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -165,22 +172,6 @@ void ImproperHybrid::allocate()
   for (int m = 0; m < nstyles; m++) improperlist[m] = nullptr;
 }
 
-/* ---------------------------------------------------------------------- */
-
-void ImproperHybrid::deallocate()
-{
-  if (!allocated) return;
-
-  allocated = 0;
-
-  memory->destroy(setflag);
-  memory->destroy(map);
-  delete[] nimproperlist;
-  delete[] maximproper;
-  for (int i = 0; i < nstyles; i++) memory->destroy(improperlist[i]);
-  delete[] improperlist;
-}
-
 /* ----------------------------------------------------------------------
    create one improper style for each arg in list
 ------------------------------------------------------------------------- */
@@ -200,7 +191,15 @@ void ImproperHybrid::settings(int narg, char **arg)
     delete[] keywords;
   }
 
-  deallocate();
+  if (allocated) {
+    memory->destroy(setflag);
+    memory->destroy(map);
+    delete[] nimproperlist;
+    delete[] maximproper;
+    for (i = 0; i < nstyles; i++) memory->destroy(improperlist[i]);
+    delete[] improperlist;
+  }
+  allocated = 0;
 
   // allocate list of sub-styles
 
@@ -270,8 +269,7 @@ void ImproperHybrid::coeff(int narg, char **arg)
     else if (strcmp(arg[1], "aa") == 0)
       error->all(FLERR, "AngleAngle coeff for hybrid improper has invalid format");
     else
-      error->all(FLERR, "Expected hybrid sub-style instead of {} in improper_coeff command",
-                 arg[1]);
+      error->all(FLERR, "Improper coeff for hybrid has invalid style");
   }
 
   // move 1st arg to 2nd arg
@@ -358,7 +356,7 @@ void ImproperHybrid::read_restart(FILE *fp)
     keywords[m] = new char[n];
     if (me == 0) utils::sfread(FLERR, keywords[m], sizeof(char), n, fp, nullptr, error);
     MPI_Bcast(keywords[m], n, MPI_CHAR, 0, world);
-    styles[m] = force->new_improper(keywords[m], 1, dummy);
+    styles[m] = force->new_improper(keywords[m], 0, dummy);
     styles[m]->read_restart_settings(fp);
   }
 }

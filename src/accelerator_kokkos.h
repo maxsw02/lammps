@@ -59,7 +59,6 @@ class KokkosLMP {
   void accelerator(int, char **) {}
   int neigh_list_kokkos(int) { return 0; }
   int neigh_count(int) { return 0; }
-  void newton_check() {};
 };
 
 class AtomKokkos : public Atom {

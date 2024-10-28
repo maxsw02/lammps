@@ -31,7 +31,7 @@ class PairBrownian : public Pair {
   void compute(int, int) override;
   void settings(int, char **) override;
   void coeff(int, char **) override;
-  virtual double init_one(int, int) override;
+  double init_one(int, int) override;
   void init_style() override;
   void write_restart(FILE *) override;
   void read_restart(FILE *) override;
@@ -55,7 +55,7 @@ class PairBrownian : public Pair {
   class RanMars *random;
 
   void set_3_orthogonal_vectors(double *, double *, double *);
-  virtual void allocate();
+  void allocate();
 };
 
 }    // namespace LAMMPS_NS

@@ -21,7 +21,6 @@
 #include "angle.h"
 #include "atom_kokkos.h"
 #include "atom_masks.h"
-#include "atom_vec.h"
 #include "bond.h"
 #include "comm.h"
 #include "compute.h"

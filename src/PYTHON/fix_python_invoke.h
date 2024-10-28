@@ -30,7 +30,6 @@ class FixPythonInvoke : public Fix {
   FixPythonInvoke(class LAMMPS *, int, char **);
   ~FixPythonInvoke() override;
   int setmask() override;
-  void setup(int) override;
   void end_of_step() override;
   void post_force(int) override;
 

@@ -32,7 +32,7 @@
 using namespace LAMMPS_NS;
 using MathExtra::dot3;
 
-static constexpr int MAXNEIGH = 24;
+#define MAXNEIGH 24
 
 /* ---------------------------------------------------------------------- */
 

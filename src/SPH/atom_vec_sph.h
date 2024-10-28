@@ -38,6 +38,11 @@ class AtomVecSPH : virtual public AtomVec {
  private:
   double *rho, *drho, *esph, *desph, *cv;
   double **vest;
+
+  double *entropy;
+  double *entropyest;
+  double *dentropy;
+  double *temperature;
 };
 
 }    // namespace LAMMPS_NS

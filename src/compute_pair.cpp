@@ -30,7 +30,7 @@ enum { EPAIR, EVDWL, ECOUL };
 ComputePair::ComputePair(LAMMPS *lmp, int narg, char **arg) :
     Compute(lmp, narg, arg), pstyle(nullptr), pair(nullptr), one(nullptr)
 {
-  if (narg < 4) utils::missing_cmd_args(FLERR, "compute pair", error);
+  if (narg < 4) error->all(FLERR, "Illegal compute pair command");
 
   scalar_flag = 1;
   extscalar = 1;
@@ -63,7 +63,7 @@ ComputePair::ComputePair(LAMMPS *lmp, int narg, char **arg) :
     else if (strcmp(arg[iarg], "ecoul") == 0)
       evalue = ECOUL;
     else
-      error->all(FLERR, "Unknown compute pair keyword {}", arg[iarg]);
+      error->all(FLERR, "Illegal compute pair command");
     ++iarg;
   }
 
@@ -75,7 +75,7 @@ ComputePair::ComputePair(LAMMPS *lmp, int narg, char **arg) :
     pair = force->pair_match(pstyle, 1, nsub);
   }
 
-  if (!pair) error->all(FLERR, "Unused pair style {} in compute pair command", pstyle);
+  if (!pair) error->all(FLERR, "Unrecognized pair style in compute pair command");
   npair = pair->nextra;
 
   if (npair) {
@@ -104,7 +104,7 @@ void ComputePair::init()
   // recheck for pair style in case it has been deleted
 
   pair = force->pair_match(pstyle, 1, nsub);
-  if (!pair) error->all(FLERR, "Unrecognized pair style {} in compute pair command", pstyle);
+  if (!pair) error->all(FLERR, "Unrecognized pair style in compute pair command");
 }
 
 /* ---------------------------------------------------------------------- */

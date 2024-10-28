@@ -31,7 +31,7 @@ using namespace LAMMPS_NS;
 
 enum { SUM, MINN, MAXX };
 
-static constexpr double BIG = 1.0e20;
+#define BIG 1.0e20
 
 /* ---------------------------------------------------------------------- */
 

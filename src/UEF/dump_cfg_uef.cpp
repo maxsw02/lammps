@@ -26,7 +26,9 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr double UNWRAPEXPAND = 10.0;
+#define UNWRAPEXPAND 10.0
+#define ONEFIELD 32
+#define DELTA 1048576
 
 /* ----------------------------------------------------------------------
  * base method is mostly fine, just need to find the FixNHUef

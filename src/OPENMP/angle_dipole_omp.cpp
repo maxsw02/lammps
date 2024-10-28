@@ -25,8 +25,11 @@
 #include "force.h"
 #include "neighbor.h"
 
+
 #include "suffix.h"
 using namespace LAMMPS_NS;
+
+#define SMALL 0.001
 
 /* ---------------------------------------------------------------------- */
 

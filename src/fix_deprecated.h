@@ -19,8 +19,7 @@ FixStyle(ave/spatial,FixDeprecated);
 FixStyle(ave/spatial/sphere,FixDeprecated);
 FixStyle(lb/pc,FixDeprecated);
 FixStyle(lb/rigid/pc/sphere,FixDeprecated);
-FixStyle(reax/c/bonds,FixDeprecated);
-FixStyle(reax/c/species,FixDeprecated);
+FixStyle(client/md,FixDeprecated);
 // clang-format on
 #else
 

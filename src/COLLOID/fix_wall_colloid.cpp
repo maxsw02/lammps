@@ -34,7 +34,7 @@ FixWallColloid::FixWallColloid(LAMMPS *lmp, int narg, char **arg) : FixWall(lmp,
 
 void FixWallColloid::init()
 {
-  if (!atom->radius_flag) error->all(FLERR, "Fix wall/colloid requires atom attribute radius");
+  if (!atom->sphere_flag) error->all(FLERR, "Fix wall/colloid requires atom style sphere");
 
   // ensure all particles in group are extended particles
 

@@ -33,7 +33,7 @@
 
 using namespace LAMMPS_NS;
 
-static constexpr int DELTA = 4;
+#define DELTA 4
 
 /* ---------------------------------------------------------------------- */
 
@@ -250,7 +250,6 @@ void PairSW::settings(int narg, char ** arg)
       // pair_coeff * * and can enable the single function.
       one_coeff = skip_threebody_flag ? 0 : 1;
       single_enable = skip_threebody_flag ? 1 : 0;
-      manybody_flag = skip_threebody_flag ? 0 : 1;
       iarg += 2;
     } else error->all(FLERR, "Illegal pair_style sw keyword: {}", arg[iarg]);
   }
