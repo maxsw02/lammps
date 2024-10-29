@@ -372,10 +372,10 @@ void PairSDPDIdeal::compute (int eflag, int vflag) {
         f_random[0] =  f_rand[0];
         f_random[1] =  f_rand[1];
         f_random[2] =  f_rand[2];
-        f_random[0] = f_random[1] = f_random[2] = 0.0;
+        //f_random[0] = f_random[1] = f_random[2] = 0.0;
 
         term_rand = -0.5 * (f_rand[0] * velx + f_rand[1] * vely + f_rand[2] * velz) + Cij * dV;
-        term_rand = 0.0;
+        //term_rand = 0.0;
 
         f[i][0] += fpgradx - fviscx - fvisc2x + sqrt(dtinv) * jmass * f_rand[0];
         f[i][1] += fpgrady - fviscy - fvisc2y + sqrt(dtinv) * jmass * f_rand[1];
