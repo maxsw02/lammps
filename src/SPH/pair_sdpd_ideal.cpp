@@ -238,7 +238,7 @@ void PairSDPDIdeal::compute (int eflag, int vflag) {
     jnum = numneigh[i];
     imass = mass[itype];
     
-    power_term = pow(np* d[i],2./3.);
+    power_term = pow(np * d[i],2./3.);
     exp_term = exp((2.*entropy[i]/kb/np-5.)/3.);
     ei = 3.*h_p*h_p*np*np/4./pi/imass * power_term * exp_term;
     
@@ -269,18 +269,17 @@ void PairSDPDIdeal::compute (int eflag, int vflag) {
         
         double r = sqrt (rsq);
         if (delx == 0.) {
-
-          ex = 0;
+          ex = 0.;
         } else {
           ex = delx / r;
         }
         if (dely == 0.) {
-          ey = 0;
+          ey = 0.;
         } else {
           ey = dely / r;
         }     
         if (delz == 0.) {
-          ez = 0;
+          ez = 0.;
         } else {
           ez = delz / r;
         } 
@@ -317,7 +316,7 @@ void PairSDPDIdeal::compute (int eflag, int vflag) {
         fdd = F / (d[i]* d[j]);
         
         // Stochastic constants
-        Aij = sqrt(8. * comb_temp * kb * (((5./3.0) * visc - eta))*fdd);
+        Aij = sqrt(8. * comb_temp * kb * (((5./3.) * visc - eta))*fdd);
         aij = (Aij * Aij / (8. * kb)) *(1./Ti + 1./Tj);
         
         Bij = sqrt(8. * comb_temp * kb * (((5./3.) * visc + 8. * eta))*fdd);
@@ -377,13 +376,13 @@ void PairSDPDIdeal::compute (int eflag, int vflag) {
         term_rand = -0.5 * (f_rand[0] * velx + f_rand[1] * vely + f_rand[2] * velz) + Cij * dV;
         //term_rand = 0.0;
 
-        f[i][0] += fpgradx - fviscx - fvisc2x + sqrt(dtinv) * jmass * f_rand[0];
-        f[i][1] += fpgrady - fviscy - fvisc2y + sqrt(dtinv) * jmass * f_rand[1];
-        f[i][2] += fpgradz - fviscz - fvisc2z + sqrt(dtinv) * jmass * f_rand[2];
+        f[i][0] += fpgradx - fviscx - fvisc2x + sqrt(dtinv) * jmass * f_random[0];
+        f[i][1] += fpgrady - fviscy - fvisc2y + sqrt(dtinv) * jmass * f_random[1];
+        f[i][2] += fpgradz - fviscz - fvisc2z + sqrt(dtinv) * jmass * f_random[2];
 
-        //f[i][0] += -fvisc2x; //-fviscx - fvisc2x; //- fviscx - fvisc2x + sqrt(dtinv) * jmass * f_rand[0];
-        //f[i][1] += -fvisc2y; //-fviscy - fvisc2y; //- fviscy - fvisc2y + sqrt(dtinv) * jmass * f_rand[1];
-        //f[i][2] += -fvisc2z; //-fviscz - fvisc2z; //- fviscz - fvisc2z + sqrt(dtinv) * jmass * f_rand[2];
+        //f[i][0] += fpgradx; //-fviscx - fvisc2x; //- fviscx - fvisc2x + sqrt(dtinv) * jmass * f_rand[0];
+        //f[i][1] += fpgradx; //-fviscy - fvisc2y; //- fviscy - fvisc2y + sqrt(dtinv) * jmass * f_rand[1];
+        //f[i][2] += fpgradz; //-fviscz - fvisc2z; //- fviscz - fvisc2z + sqrt(dtinv) * jmass * f_rand[2];
 
         term1 = (aij * vdotv + (aij/3. + bij) * VijdotEij * VijdotEij) * (1 - dij - (Tj /(Ti  + Tj)) * kb/cv[i]);
         term3 = fdd * (Ti  - Tj);
@@ -401,13 +400,13 @@ void PairSDPDIdeal::compute (int eflag, int vflag) {
 
         if (newton_pair || j < nlocal) {
           
-          f[j][0] -= fpgradx - fviscx - fvisc2x + sqrt(dtinv) * imass * f_rand[0];
-          f[j][1] -= fpgrady - fviscy - fvisc2y + sqrt(dtinv) * imass * f_rand[1];
-          f[j][2] -= fpgradz - fviscz - fvisc2z + sqrt(dtinv) * imass * f_rand[2];
+          f[j][0] -= fpgradx - fviscx - fvisc2x + sqrt(dtinv) * imass * f_random[0];
+          f[j][1] -= fpgrady - fviscy - fvisc2y + sqrt(dtinv) * imass * f_random[1];
+          f[j][2] -= fpgradz - fviscz - fvisc2z + sqrt(dtinv) * imass * f_random[2];
 
-          //f[j][0] -=  -fvisc2x; //-fviscx - fvisc2x; //- fviscx - fvisc2x + sqrt(dtinv) * jmass * f_rand[0];
-          //f[j][1] -=  -fvisc2y; //-fviscy - fvisc2y; //- fviscy - fvisc2y + sqrt(dtinv) * jmass * f_rand[1];
-          //f[j][2] -=  -fvisc2z; //-fviscz - fvisc2z; //- fviscz - fvisc2z + sqrt(dtinv) * jmass * f_rand[2];
+          //f[j][0] -=  fpgradx; //-fviscx - fvisc2x; //- fviscx - fvisc2x + sqrt(dtinv) * jmass * f_rand[0];
+          //f[j][1] -=  fpgrady; //-fviscy - fvisc2y; //- fviscy - fvisc2y + sqrt(dtinv) * jmass * f_rand[1];
+          //f[j][2] -=  fpgradz; //-fviscz - fvisc2z; //- fviscz - fvisc2z + sqrt(dtinv) * jmass * f_rand[2];
 
           term1 = (aij * vdotv + (aij/3. + bij) * VijdotEij * VijdotEij) * (1 - dij - (Ti /(Ti  + Tj)) * kb/cv[j]);
 

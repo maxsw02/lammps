@@ -75,7 +75,7 @@ void FixSDPD::initial_integrate(int /*vflag*/) {
   int nlocal = atom->nlocal;
   int i;
   double dtfm;
-  //double forces[8][3];
+  double forces[8][3];
 
   if (igroup == atom->firstgroup)
     nlocal = atom->nfirst;
@@ -92,9 +92,9 @@ void FixSDPD::initial_integrate(int /*vflag*/) {
       v[i][1] +=  dtfm * f[i][1];
       v[i][2] += dtfm * f[i][2];
 
-      //forces[i][0] = f[i][0]; //THIS IS A PLACEHOLDER WRONG
-      //forces[i][1] = f[i][1]; //THIS IS A PLACEHOLDER WRONG
-      //forces[i][2] = f[i][2]; //THIS IS A PLACEHOLDER WRONG
+      forces[i][0] = f[i][0]; //THIS IS A PLACEHOLDER WRONG
+      forces[i][1] = f[i][1]; //THIS IS A PLACEHOLDER WRONG
+      forces[i][2] = f[i][2]; //THIS IS A PLACEHOLDER WRONG
 
       x[i][0] += dtv * v[i][0];
       x[i][1] += dtv * v[i][1];
@@ -103,7 +103,6 @@ void FixSDPD::initial_integrate(int /*vflag*/) {
       entropy[i] += dtv * dentropy[i];
     }
   }
-
 }
 
 /* ---------------------------------------------------------------------- */
