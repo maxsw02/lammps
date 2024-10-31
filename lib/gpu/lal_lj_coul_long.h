@@ -78,7 +78,7 @@ class LJCoulLong : public BaseCharge<numtyp, acctyp> {
 
   numtyp _cut_coulsq, _qqrd2e, _g_ewald;
 
-protected:
+ private:
   bool _allocated;
   int loop(const int eflag, const int vflag);
 };

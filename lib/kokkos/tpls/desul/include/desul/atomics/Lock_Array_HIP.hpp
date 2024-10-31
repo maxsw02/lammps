@@ -9,15 +9,23 @@ SPDX-License-Identifier: (BSD-3-Clause)
 #ifndef DESUL_ATOMICS_LOCK_ARRAY_HIP_HPP_
 #define DESUL_ATOMICS_LOCK_ARRAY_HIP_HPP_
 
+#include "desul/atomics/Common.hpp"
+#include "desul/atomics/Macros.hpp"
+
+#ifdef DESUL_HAVE_HIP_ATOMICS
+
 #include <hip/hip_runtime.h>
 
 #include <cstdint>
 
-#include "desul/atomics/Common.hpp"
-#include "desul/atomics/Macros.hpp"
-
 namespace desul {
 namespace Impl {
+
+#ifdef __HIP_DEVICE_COMPILE__
+#define DESUL_IMPL_BALLOT_MASK(x) __ballot(x)
+#else
+#define DESUL_IMPL_BALLOT_MASK(x) 0
+#endif
 
 /**
  * \brief This global variable in Host space is the central definition of these
@@ -35,7 +43,7 @@ extern int32_t* HIP_SPACE_ATOMIC_LOCKS_NODE_h;
 template <typename /*AlwaysInt*/ = int>
 void init_lock_arrays_hip();
 
-/// \brief After this call, the g_host_hip_lock_arrays variable has
+/// \brief After this call, the g_host_cuda_lock_arrays variable has
 ///        all null pointers, and all array memory has been freed.
 ///
 /// This call is idempotent.
@@ -43,6 +51,12 @@ void init_lock_arrays_hip();
 ///   snapshotted version while also linking against pure Desul
 template <typename /*AlwaysInt*/ = int>
 void finalize_lock_arrays_hip();
+}  // namespace Impl
+}  // namespace desul
+
+#ifdef __HIPCC__
+namespace desul {
+namespace Impl {
 
 /**
  * \brief This global variable in HIP space is what kernels use to get access
@@ -58,20 +72,22 @@ void finalize_lock_arrays_hip();
  * be created in every translation unit that sees this header file (we make this
  * clear by marking it static, meaning no other translation unit can link to
  * it). Since the Kokkos_HIP_Locks.cpp translation unit cannot initialize the
- * instances in other translation units, we must update this HIP global
+ * instances in other translation units, we must update this CUDA global
  * variable based on the Host global variable prior to running any kernels that
  * will use it.  That is the purpose of the
- * ensure_hip_lock_arrays_on_device function.
+ * KOKKOS_ENSURE_HIP_LOCK_ARRAYS_ON_DEVICE macro.
  */
-#ifdef DESUL_ATOMICS_ENABLE_HIP_SEPARABLE_COMPILATION
-extern
+__device__
+#ifdef DESUL_HIP_RDC
+    __constant__ extern
 #endif
-    __device__ __constant__ int32_t* HIP_SPACE_ATOMIC_LOCKS_DEVICE;
+    int32_t* HIP_SPACE_ATOMIC_LOCKS_DEVICE;
 
-#ifdef DESUL_ATOMICS_ENABLE_HIP_SEPARABLE_COMPILATION
-extern
+__device__
+#ifdef DESUL_HIP_RDC
+    __constant__ extern
 #endif
-    __device__ __constant__ int32_t* HIP_SPACE_ATOMIC_LOCKS_NODE;
+    int32_t* HIP_SPACE_ATOMIC_LOCKS_NODE;
 
 #define HIP_SPACE_ATOMIC_MASK 0x1FFFF
 
@@ -114,35 +130,44 @@ __device__ inline void unlock_address_hip(void* ptr, desul::MemoryScopeNode) {
   offset = offset & HIP_SPACE_ATOMIC_MASK;
   atomicExch(&desul::Impl::HIP_SPACE_ATOMIC_LOCKS_NODE[offset], 0);
 }
-
-#ifdef DESUL_ATOMICS_ENABLE_HIP_SEPARABLE_COMPILATION
-inline
-#else
-inline static
 #endif
-    void
-    copy_hip_lock_arrays_to_device() {
-  static bool once = []() {
-    (void)hipMemcpyToSymbol(HIP_SYMBOL(HIP_SPACE_ATOMIC_LOCKS_DEVICE),
-                            &HIP_SPACE_ATOMIC_LOCKS_DEVICE_h,
-                            sizeof(int32_t*));
-    (void)hipMemcpyToSymbol(HIP_SYMBOL(HIP_SPACE_ATOMIC_LOCKS_NODE),
-                            &HIP_SPACE_ATOMIC_LOCKS_NODE_h,
-                            sizeof(int32_t*));
-    return true;
-  }();
-  (void)once;
-}
 }  // namespace Impl
+}  // namespace desul
 
-#ifdef DESUL_ATOMICS_ENABLE_HIP_SEPARABLE_COMPILATION
-inline void ensure_hip_lock_arrays_on_device() {}
-#else
-static inline void ensure_hip_lock_arrays_on_device() {
-  Impl::copy_hip_lock_arrays_to_device();
-}
+// Make lock_array_copied an explicit translation unit scope thing
+namespace desul {
+namespace Impl {
+namespace {
+static int lock_array_copied = 0;
+inline int eliminate_warning_for_lock_array() { return lock_array_copied; }
+}  // namespace
+}  // namespace Impl
+}  // namespace desul
+
+/* It is critical that this code be a macro, so that it will
+   capture the right address for g_device_hip_lock_arrays!
+   putting this in an inline function will NOT do the right thing! */
+#define DESUL_IMPL_COPY_HIP_LOCK_ARRAYS_TO_DEVICE()                                   \
+  {                                                                                   \
+    if (::desul::Impl::lock_array_copied == 0) {                                      \
+      (void)hipMemcpyToSymbol(                                                        \
+          HIP_SYMBOL(::desul::Impl::HIP_SPACE_ATOMIC_LOCKS_DEVICE),                   \
+          &::desul::Impl::HIP_SPACE_ATOMIC_LOCKS_DEVICE_h,                            \
+          sizeof(int32_t*));                                                          \
+      (void)hipMemcpyToSymbol(HIP_SYMBOL(::desul::Impl::HIP_SPACE_ATOMIC_LOCKS_NODE), \
+                              &::desul::Impl::HIP_SPACE_ATOMIC_LOCKS_NODE_h,          \
+                              sizeof(int32_t*));                                      \
+    }                                                                                 \
+    ::desul::Impl::lock_array_copied = 1;                                             \
+  }
+
 #endif
 
-}  // namespace desul
+#if defined(DESUL_HIP_RDC) || (!defined(__HIPCC__))
+#define DESUL_ENSURE_HIP_LOCK_ARRAYS_ON_DEVICE()
+#else
+#define DESUL_ENSURE_HIP_LOCK_ARRAYS_ON_DEVICE() \
+  DESUL_IMPL_COPY_HIP_LOCK_ARRAYS_TO_DEVICE()
+#endif
 
 #endif

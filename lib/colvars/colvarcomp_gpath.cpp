@@ -1,4 +1,4 @@
-// -*- c++ -*-
+#if (__cplusplus >= 201103L)
 
 // This file is part of the Collective Variables module (Colvars).
 // The original version of Colvars and its updates are located at:
@@ -10,29 +10,17 @@
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <fstream>
 
 #include "colvarmodule.h"
 #include "colvarvalue.h"
+#include "colvarparse.h"
 #include "colvar.h"
 #include "colvarcomp.h"
 
-
-
-colvar::CartesianBasedPath::CartesianBasedPath()
-{
-    x.type(colvarvalue::type_scalar);
-    // Don't use implicit gradient
-    enable(f_cvc_explicit_gradient);
-}
-
-
-int colvar::CartesianBasedPath::init(std::string const &conf)
-{
-    int error_code = cvc::init(conf);
-    if (error_code != COLVARS_OK) return error_code;
-
+colvar::CartesianBasedPath::CartesianBasedPath(std::string const &conf): cvc(conf), atoms(nullptr), reference_frames(0) {
     // Parse selected atoms
     atoms = parse_group(conf, "atoms");
     has_user_defined_fitting = false;
@@ -43,12 +31,13 @@ int colvar::CartesianBasedPath::init(std::string const &conf)
     // Lookup reference column of PDB
     // Copied from the RMSD class
     std::string reference_column;
-    double reference_column_value = 0.0;
+    double reference_column_value;
     if (get_keyval(conf, "refPositionsCol", reference_column, std::string(""))) {
-        bool found = get_keyval(conf, "refPositionsColValue", reference_column_value, reference_column_value);
+        bool found = get_keyval(conf, "refPositionsColValue", reference_column_value, 0.0);
         if (found && reference_column_value == 0.0) {
-            return cvm::error("Error: refPositionsColValue, if provided, must be non-zero.\n",
-                              COLVARS_INPUT_ERROR);
+          cvm::error("Error: refPositionsColValue, "
+                     "if provided, must be non-zero.\n");
+          return;
         }
     }
     // Lookup all reference frames
@@ -77,6 +66,9 @@ int colvar::CartesianBasedPath::init(std::string const &conf)
             tmp_atoms->ref_pos = reference_frames[i_frame];
             tmp_atoms->center_ref_pos();
             tmp_atoms->enable(f_ag_fit_gradients);
+            tmp_atoms->rot.request_group1_gradients(tmp_atoms->size());
+            tmp_atoms->rot.request_group2_gradients(tmp_atoms->size());
+            comp_atoms.push_back(tmp_atoms);
         } else {
             // parse a group of atoms for fitting
             std::string fitting_group_name = std::string("fittingAtoms") + cvm::to_str(i_frame);
@@ -99,13 +91,15 @@ int colvar::CartesianBasedPath::init(std::string const &conf)
             tmp_atoms->enable(f_ag_fit_gradients);
             tmp_atoms->enable(f_ag_fitting_group);
             tmp_atoms->fitting_group = tmp_fitting_atoms;
+            tmp_atoms->rot.request_group1_gradients(tmp_fitting_atoms->size());
+            tmp_atoms->rot.request_group2_gradients(tmp_fitting_atoms->size());
             reference_fitting_frames.push_back(reference_fitting_position);
+            comp_atoms.push_back(tmp_atoms);
         }
-        tmp_atoms->setup_rotation_derivative();
-        comp_atoms.push_back(tmp_atoms);
     }
-
-    return error_code;
+    x.type(colvarvalue::type_scalar);
+    // Don't use implicit gradient
+    enable(f_cvc_explicit_gradient);
 }
 
 colvar::CartesianBasedPath::~CartesianBasedPath() {
@@ -131,60 +125,8 @@ void colvar::CartesianBasedPath::computeDistanceToReferenceFrames(std::vector<cv
     }
 }
 
-// mainly used for determining the lambda value for arithmetic path
-void colvar::CartesianBasedPath::computeDistanceBetweenReferenceFrames(std::vector<cvm::real>& result) {
-    for (size_t i_frame = 0; i_frame < reference_frames.size() - 1; ++i_frame) {
-        std::vector<cvm::atom_pos> this_frame_atom_pos(reference_frames[i_frame].size());
-        std::vector<cvm::atom_pos> next_frame_atom_pos(reference_frames[i_frame + 1].size());
-        cvm::real frame_rmsd = 0.0;
-        const size_t this_index = i_frame;
-        const size_t next_index = i_frame + 1;
-        // compute COM of two successive images, respectively
-        cvm::atom_pos reference_cog_this, reference_cog_next;
-        for (size_t i_atom = 0; i_atom < atoms->size(); ++i_atom) {
-            reference_cog_this += reference_frames[this_index][i_atom];
-            reference_cog_next += reference_frames[next_index][i_atom];
-        }
-        reference_cog_this /= reference_frames[this_index].size();
-        reference_cog_next /= reference_frames[next_index].size();
-        // move all atoms to COM
-        for (size_t i_atom = 0; i_atom < atoms->size(); ++i_atom) {
-            this_frame_atom_pos[i_atom] = reference_frames[this_index][i_atom] - reference_cog_this;
-            next_frame_atom_pos[i_atom] = reference_frames[next_index][i_atom] - reference_cog_next;
-        }
-        cvm::rotation rot_this_to_next;
-        // compute the optimal rotation
-        rot_this_to_next.calc_optimal_rotation(this_frame_atom_pos, next_frame_atom_pos);
-        // compute rmsd between reference frames
-        for (size_t i_atom = 0; i_atom < atoms->size(); ++i_atom) {
-            frame_rmsd += (rot_this_to_next.q.rotate(this_frame_atom_pos[i_atom]) - next_frame_atom_pos[i_atom]).norm2();
-        }
-        frame_rmsd /= cvm::real(atoms->size());
-        frame_rmsd = cvm::sqrt(frame_rmsd);
-        result[i_frame] = frame_rmsd;
-    }
-}
-
-
-void colvar::CartesianBasedPath::apply_force(colvarvalue const &force)
-{
-    cvm::error("Error: using apply_force() in a component of type CartesianBasedPath, which is abstract.\n",
-               COLVARS_BUG_ERROR);
-}
-
-
-
-colvar::gspath::gspath()
-{
+colvar::gspath::gspath(std::string const &conf): CartesianBasedPath(conf) {
     set_function_type("gspath");
-}
-
-
-int colvar::gspath::init(std::string const &conf)
-{
-    int error_code = CartesianBasedPath::init(conf);
-    if (error_code != COLVARS_OK) return error_code;
-
     get_keyval(conf, "useSecondClosestFrame", use_second_closest_frame, true);
     if (use_second_closest_frame == true) {
         cvm::log(std::string("Geometric path s(σ) will use the second closest frame to compute s_(m-1)\n"));
@@ -198,14 +140,12 @@ int colvar::gspath::init(std::string const &conf)
         cvm::log(std::string("Geometric path s(σ) will use the neighbouring frame to compute s_(m+1)\n"));
     }
     if (total_reference_frames < 2) {
-        return cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) +
-                              " reference frames, but gspath requires at least 2 frames.\n",
-                          COLVARS_INPUT_ERROR);
+        cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) + " reference frames, but gspath requires at least 2 frames.\n");
+        return;
     }
     GeometricPathCV::GeometricPathBase<cvm::atom_pos, cvm::real, GeometricPathCV::path_sz::S>::initialize(atoms->size(), cvm::atom_pos(), total_reference_frames, use_second_closest_frame, use_third_closest_frame);
     cvm::log(std::string("Geometric pathCV(s) is initialized.\n"));
     cvm::log(std::string("Geometric pathCV(s) loaded ") + cvm::to_str(reference_frames.size()) + std::string(" frames.\n"));
-    return error_code;
 }
 
 void colvar::gspath::updateDistanceToReferenceFrames() {
@@ -252,9 +192,8 @@ void colvar::gspath::prepareVectors() {
         } else {
             rot_v3.calc_optimal_rotation(tmp_reference_frame_1, tmp_reference_frame_2);
         }
-        const auto rot_mat_v3 = rot_v3.matrix();
         for (i_atom = 0; i_atom < atoms->size(); ++i_atom) {
-            v3[i_atom] = rot_mat_v3 * tmp_reference_frame_1[i_atom] - tmp_reference_frame_2[i_atom];
+            v3[i_atom] = rot_v3.q.rotate(tmp_reference_frame_1[i_atom]) - tmp_reference_frame_2[i_atom];
         }
     } else {
         cvm::atom_pos reference_cog_1, reference_cog_3;
@@ -288,10 +227,9 @@ void colvar::gspath::prepareVectors() {
         } else {
             rot_v3.calc_optimal_rotation(tmp_reference_frame_1, tmp_reference_frame_3);
         }
-        const auto rot_mat_v3 = rot_v3.matrix();
         for (i_atom = 0; i_atom < atoms->size(); ++i_atom) {
             // v3 = s_(m+1) - s_m
-            v3[i_atom] = tmp_reference_frame_3[i_atom] - rot_mat_v3 * tmp_reference_frame_1[i_atom];
+            v3[i_atom] = tmp_reference_frame_3[i_atom] - rot_v3.q.rotate(tmp_reference_frame_1[i_atom]);
         }
     }
 }
@@ -329,17 +267,8 @@ void colvar::gspath::apply_force(colvarvalue const &force) {
     (*(comp_atoms[min_frame_index_2])).apply_colvar_force(F);
 }
 
-
-colvar::gzpath::gzpath()
-{
+colvar::gzpath::gzpath(std::string const &conf): CartesianBasedPath(conf) {
     set_function_type("gzpath");
-}
-
-int colvar::gzpath::init(std::string const &conf)
-{
-    int error_code = CartesianBasedPath::init(conf);
-    if (error_code != COLVARS_OK) return error_code;
-
     get_keyval(conf, "useSecondClosestFrame", use_second_closest_frame, true);
     if (use_second_closest_frame == true) {
         cvm::log(std::string("Geometric path z(σ) will use the second closest frame to compute s_(m-1)\n"));
@@ -358,15 +287,13 @@ int colvar::gzpath::init(std::string const &conf)
         cvm::log(std::string("Geometric path z(σ) will use the square of distance from current frame to path compute z\n"));
     }
     if (total_reference_frames < 2) {
-        return cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) +
-                               " reference frames, but gzpath requires at least 2 frames.\n",
-                          COLVARS_INPUT_ERROR);
+        cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) + " reference frames, but gzpath requires at least 2 frames.\n");
+        return;
     }
     GeometricPathCV::GeometricPathBase<cvm::atom_pos, cvm::real, GeometricPathCV::path_sz::Z>::initialize(atoms->size(), cvm::atom_pos(), total_reference_frames, use_second_closest_frame, use_third_closest_frame, b_use_z_square);
     // Logging
     cvm::log(std::string("Geometric pathCV(z) is initialized.\n"));
     cvm::log(std::string("Geometric pathCV(z) loaded ") + cvm::to_str(reference_frames.size()) + std::string(" frames.\n"));
-    return error_code;
 }
 
 void colvar::gzpath::updateDistanceToReferenceFrames() {
@@ -408,13 +335,12 @@ void colvar::gzpath::prepareVectors() {
     } else {
         rot_v4.calc_optimal_rotation(tmp_reference_frame_1, tmp_reference_frame_2);
     }
-    const auto rot_mat_v4 = rot_v4.matrix();
     for (i_atom = 0; i_atom < atoms->size(); ++i_atom) {
         v1[i_atom] = reference_frames[min_frame_index_1][i_atom] - (*(comp_atoms[min_frame_index_1]))[i_atom].pos;
         v2[i_atom] = (*(comp_atoms[min_frame_index_2]))[i_atom].pos - reference_frames[min_frame_index_2][i_atom];
         // v4 only computes in gzpath
         // v4 = s_m - s_(m-1)
-        v4[i_atom] = rot_mat_v4 * tmp_reference_frame_1[i_atom] - tmp_reference_frame_2[i_atom];
+        v4[i_atom] = rot_v4.q.rotate(tmp_reference_frame_1[i_atom]) - tmp_reference_frame_2[i_atom];
     }
     if (min_frame_index_3 < 0 || min_frame_index_3 > M) {
         v3 = v4;
@@ -442,10 +368,9 @@ void colvar::gzpath::prepareVectors() {
         } else {
             rot_v3.calc_optimal_rotation(tmp_reference_frame_1, tmp_reference_frame_3);
         }
-        const auto rot_mat_v3 = rot_v3.matrix();
         for (i_atom = 0; i_atom < atoms->size(); ++i_atom) {
             // v3 = s_(m+1) - s_m
-            v3[i_atom] = tmp_reference_frame_3[i_atom] - rot_mat_v3 * tmp_reference_frame_1[i_atom];
+            v3[i_atom] = tmp_reference_frame_3[i_atom] - rot_v3.q.rotate(tmp_reference_frame_1[i_atom]);
         }
     }
 }
@@ -474,26 +399,14 @@ void colvar::gzpath::apply_force(colvarvalue const &force) {
 }
 
 
-colvar::CVBasedPath::CVBasedPath()
-{
-    set_function_type("gspathCV");
-    x.type(colvarvalue::type_scalar);
-}
-
-
-int colvar::CVBasedPath::init(std::string const &conf)
-{
-    int error_code = cvc::init(conf);
-    if (error_code != COLVARS_OK) return error_code;
-
+colvar::CVBasedPath::CVBasedPath(std::string const &conf): cvc(conf) {
     // Lookup all available sub-cvcs
     for (auto it_cv_map = colvar::get_global_cvc_map().begin(); it_cv_map != colvar::get_global_cvc_map().end(); ++it_cv_map) {
         if (key_lookup(conf, it_cv_map->first.c_str())) {
             std::vector<std::string> sub_cvc_confs;
             get_key_string_multi_value(conf, it_cv_map->first.c_str(), sub_cvc_confs);
             for (auto it_sub_cvc_conf = sub_cvc_confs.begin(); it_sub_cvc_conf != sub_cvc_confs.end(); ++it_sub_cvc_conf) {
-                cv.push_back((it_cv_map->second)());
-                cv.back()->init(*(it_sub_cvc_conf));
+                cv.push_back((it_cv_map->second)(*(it_sub_cvc_conf)));
             }
         }
     }
@@ -516,7 +429,7 @@ int colvar::CVBasedPath::init(std::string const &conf)
     cvm::log(std::string("Reading path file: ") + path_filename + std::string("\n"));
     auto &ifs_path = cvm::main()->proxy->input_stream(path_filename);
     if (!ifs_path) {
-        return COLVARS_INPUT_ERROR;
+        return;
     }
     std::string line;
     const std::string token(" ");
@@ -537,8 +450,8 @@ int colvar::CVBasedPath::init(std::string const &conf)
                     cvm::log(cvm::to_str(tmp_cv[i_cv][i - start_index]));
                 }
             } else {
-                error_code = cvm::error("Error: incorrect format of path file.\n", COLVARS_INPUT_ERROR);
-                return error_code;
+                cvm::error("Error: incorrect format of path file.\n");
+                return;
             }
         }
         if (!fields.empty()) {
@@ -548,18 +461,15 @@ int colvar::CVBasedPath::init(std::string const &conf)
     }
     cvm::main()->proxy->close_input_stream(path_filename);
     if (total_reference_frames <= 1) {
-      error_code = cvm::error(
-          "Error: there is only 1 or 0 reference frame, which doesn't constitute a path.\n",
-          COLVARS_INPUT_ERROR);
-      return error_code;
+	cvm::error("Error: there is only 1 or 0 reference frame, which doesn't constitute a path.\n");
+        return;
     }
     if (cv.size() == 0) {
-      error_code =
-          cvm::error("Error: the CV " + name + " expects one or more nesting components.\n",
-                     COLVARS_INPUT_ERROR);
-      return error_code;
+        cvm::error("Error: the CV " + name +
+                   " expects one or more nesting components.\n");
+        return;
     }
-
+    x.type(colvarvalue::type_scalar);
     use_explicit_gradients = true;
     for (size_t i_cv = 0; i_cv < cv.size(); ++i_cv) {
         if (!cv[i_cv]->is_enabled(f_cvc_explicit_gradient)) {
@@ -569,8 +479,6 @@ int colvar::CVBasedPath::init(std::string const &conf)
     if (!use_explicit_gradients) {
         disable(f_cvc_explicit_gradient);
     }
-
-    return error_code;
 }
 
 void colvar::CVBasedPath::computeDistanceToReferenceFrames(std::vector<cvm::real>& result) {
@@ -640,47 +548,8 @@ colvar::CVBasedPath::~CVBasedPath() {
     atom_groups.clear();
 }
 
-
-void colvar::CVBasedPath::apply_force(colvarvalue const &force)
-{
-    cvm::error("Error: using apply_force() in a component of type CVBasedPath, which is abstract.\n",
-               COLVARS_BUG_ERROR);
-}
-
-
-cvm::real colvar::CVBasedPath::dist2(colvarvalue const &x1, colvarvalue const &x2) const
-{
-  return x1.dist2(x2);
-}
-
-
-colvarvalue colvar::CVBasedPath::dist2_lgrad(colvarvalue const &x1, colvarvalue const &x2) const
-{
-  return x1.dist2_grad(x2);
-}
-
-
-colvarvalue colvar::CVBasedPath::dist2_rgrad(colvarvalue const &x1, colvarvalue const &x2) const
-{
-  return x2.dist2_grad(x1);
-}
-
-
-void colvar::CVBasedPath::wrap(colvarvalue & /* x_unwrapped */) const {}
-
-
-
-colvar::gspathCV::gspathCV()
-{
+colvar::gspathCV::gspathCV(std::string const &conf): CVBasedPath(conf) {
     set_function_type("gspathCV");
-    x.type(colvarvalue::type_scalar);
-}
-
-int colvar::gspathCV::init(std::string const &conf)
-{
-    int error_code = CVBasedPath::init(conf);
-    if (error_code != COLVARS_OK) return error_code;
-
     cvm::log(std::string("Total number of frames: ") + cvm::to_str(total_reference_frames) + std::string("\n"));
     // Initialize variables for future calculation
     get_keyval(conf, "useSecondClosestFrame", use_second_closest_frame, true);
@@ -696,10 +565,11 @@ int colvar::gspathCV::init(std::string const &conf)
         cvm::log(std::string("Geometric path s(σ) will use the neighbouring frame to compute s_(m+1)\n"));
     }
     if (total_reference_frames < 2) {
-        return cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) + " reference frames, but gspathCV requires at least 2 frames.\n", COLVARS_INPUT_ERROR);
+        cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) + " reference frames, but gspathCV requires at least 2 frames.\n");
+        return;
     }
     GeometricPathCV::GeometricPathBase<colvarvalue, cvm::real, GeometricPathCV::path_sz::S>::initialize(cv.size(), ref_cv[0], total_reference_frames, use_second_closest_frame, use_third_closest_frame);
-    return error_code;
+    x.type(colvarvalue::type_scalar);
 }
 
 colvar::gspathCV::~gspathCV() {}
@@ -801,16 +671,8 @@ void colvar::gspathCV::apply_force(colvarvalue const &force) {
     }
 }
 
-colvar::gzpathCV::gzpathCV()
-{
+colvar::gzpathCV::gzpathCV(std::string const &conf): CVBasedPath(conf) {
     set_function_type("gzpathCV");
-}
-
-int colvar::gzpathCV::init(std::string const &conf) {
-
-    int error_code = CVBasedPath::init(conf);
-    if (error_code != COLVARS_OK) return error_code;
-
     cvm::log(std::string("Total number of frames: ") + cvm::to_str(total_reference_frames) + std::string("\n"));
     // Initialize variables for future calculation
     M = cvm::real(total_reference_frames - 1);
@@ -833,13 +695,11 @@ int colvar::gzpathCV::init(std::string const &conf) {
         cvm::log(std::string("Geometric path z(σ) will use the square of distance from current frame to path compute z\n"));
     }
     if (total_reference_frames < 2) {
-        return cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) +
-                                     " reference frames, but gzpathCV requires at least 2 frames.\n",
-                                 COLVARS_INPUT_ERROR);
+        cvm::error("Error: you have specified " + cvm::to_str(total_reference_frames) + " reference frames, but gzpathCV requires at least 2 frames.\n");
+        return;
     }
     GeometricPathCV::GeometricPathBase<colvarvalue, cvm::real, GeometricPathCV::path_sz::Z>::initialize(cv.size(), ref_cv[0], total_reference_frames, use_second_closest_frame, use_third_closest_frame, b_use_z_square);
-
-    return error_code;
+    x.type(colvarvalue::type_scalar);
 }
 
 colvar::gzpathCV::~gzpathCV() {
@@ -934,3 +794,5 @@ void colvar::gzpathCV::apply_force(colvarvalue const &force) {
         }
     }
 }
+
+#endif

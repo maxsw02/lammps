@@ -2,12 +2,10 @@
 
 #include "lammps.h"
 #define LAMMPS_LIB_MPI 1
-#include "info.h"
 #include "library.h"
 #include <cstdio> // for stdin, stdout
 #include <mpi.h>
 #include <string>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -27,7 +25,7 @@ TEST(lammps_open, null_args)
     int mpi_init = 0;
     MPI_Initialized(&mpi_init);
     EXPECT_GT(mpi_init, 0);
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
     EXPECT_EQ(lmp->world, MPI_COMM_WORLD);
     EXPECT_EQ(lmp->infile, stdin);
     EXPECT_EQ(lmp->screen, stdout);
@@ -55,7 +53,7 @@ TEST(lammps_open, with_args)
     EXPECT_THAT(output, StartsWith("LAMMPS ("));
     if (verbose) std::cout << output;
     EXPECT_EQ(handle, alt_ptr);
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
 
     // MPI STUBS uses no real communicators
 #if !defined(MPI_STUBS)
@@ -80,38 +78,9 @@ TEST(lammps_open, with_args)
 TEST(lammps_open, with_kokkos)
 {
     if (!LAMMPS_NS::LAMMPS::is_installed_pkg("KOKKOS")) GTEST_SKIP();
-    std::vector<char *> args = {(char *)"lammps", (char *)"-log", (char *)"none", (char *)"-echo",
-                                (char *)"screen", (char *)"-sf",  (char *)"kk"};
-
-    char *one  = (char *)"1";
-    char *four = (char *)"4";
-    char *tee  = (char *)"t";
-    char *gee  = (char *)"g";
-    char *kay  = (char *)"-k";
-    char *yes  = (char *)"on";
-
-    args.push_back(kay);
-    args.push_back(yes);
-
-    // when GPU support is enabled in KOKKOS, it *must* be used
-    if (lammps_config_accelerator("KOKKOS", "api", "hip") ||
-        lammps_config_accelerator("KOKKOS", "api", "cuda") ||
-        lammps_config_accelerator("KOKKOS", "api", "sycl")) {
-        args.push_back(gee);
-        args.push_back(one);
-    }
-
-    // use threads or serial
-    args.push_back(tee);
-    if (lammps_config_accelerator("KOKKOS", "api", "openmp")) {
-        args.push_back(four);
-    } else if (lammps_config_accelerator("KOKKOS", "api", "pthreads")) {
-        args.push_back(four);
-    } else {
-        args.push_back(one);
-    }
-    int argc    = args.size();
-    char **argv = args.data();
+    const char *args[] = {"liblammps", "-k", "on", "t", "2", "-sf", "kk", "-log", "none", nullptr};
+    char **argv        = (char **)args;
+    int argc           = (sizeof(args) / sizeof(char *)) - 1;
 
     ::testing::internal::CaptureStdout();
     void *alt_ptr;
@@ -120,7 +89,7 @@ TEST(lammps_open, with_kokkos)
     EXPECT_THAT(output, StartsWith("LAMMPS ("));
     if (verbose) std::cout << output;
     EXPECT_EQ(handle, alt_ptr);
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
 
     EXPECT_EQ(lmp->world, MPI_COMM_WORLD);
     EXPECT_EQ(lmp->infile, stdin);
@@ -149,7 +118,7 @@ TEST(lammps_open_no_mpi, no_screen)
     std::string output = ::testing::internal::GetCapturedStdout();
     EXPECT_STREQ(output.c_str(), "");
     EXPECT_EQ(handle, alt_ptr);
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
 
     EXPECT_EQ(lmp->world, MPI_COMM_WORLD);
     EXPECT_EQ(lmp->infile, stdin);
@@ -169,7 +138,7 @@ TEST(lammps_open_no_mpi, no_screen)
 TEST(lammps_open_no_mpi, with_omp)
 {
     if (!LAMMPS_NS::LAMMPS::is_installed_pkg("OPENMP")) GTEST_SKIP();
-    const char *args[] = {"liblammps", "-pk", "omp",  "2",    "neigh",   "no",
+    const char *args[] = {"liblammps", "-pk", "omp",  "2",    "neigh",  "no",
                           "-sf",       "omp", "-log", "none", "-nocite", nullptr};
     char **argv        = (char **)args;
     int argc           = (sizeof(args) / sizeof(char *)) - 1;
@@ -181,7 +150,7 @@ TEST(lammps_open_no_mpi, with_omp)
     EXPECT_THAT(output, StartsWith("LAMMPS ("));
     if (verbose) std::cout << output;
     EXPECT_EQ(handle, alt_ptr);
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
 
     EXPECT_EQ(lmp->world, MPI_COMM_WORLD);
     EXPECT_EQ(lmp->infile, stdin);
@@ -210,7 +179,7 @@ TEST(lammps_open_fortran, no_args)
     std::string output = ::testing::internal::GetCapturedStdout();
     EXPECT_THAT(output, StartsWith("LAMMPS ("));
     if (verbose) std::cout << output;
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
 
     // MPI STUBS uses no real communicators
 #if !defined(MPI_STUBS)
@@ -241,7 +210,7 @@ TEST(lammps_open_no_mpi, lammps_error)
     void *handle       = lammps_open_no_mpi(argc, argv, &alt_ptr);
     std::string output = ::testing::internal::GetCapturedStdout();
     EXPECT_EQ(handle, alt_ptr);
-    auto *lmp = (LAMMPS_NS::LAMMPS *)handle;
+    LAMMPS_NS::LAMMPS *lmp = (LAMMPS_NS::LAMMPS *)handle;
 
     EXPECT_EQ(lmp->world, MPI_COMM_WORLD);
     EXPECT_EQ(lmp->infile, stdin);
@@ -256,5 +225,5 @@ TEST(lammps_open_no_mpi, lammps_error)
     lammps_error(handle, 0, "test_warning");
     output = ::testing::internal::GetCapturedStdout();
     EXPECT_THAT(output, HasSubstr("WARNING: test_warning"));
-    lammps_close(handle);
 }
+

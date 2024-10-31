@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cstdlib>
 
 #include "colvarmodule.h"
 #include "colvarproxy.h"
@@ -39,10 +40,7 @@ colvarbias_alb::colvarbias_alb(char const *key)
 int colvarbias_alb::init(std::string const &conf)
 {
   colvarproxy *proxy = cvm::main()->proxy;
-  int err = colvarbias::init(conf);
-  if (err != COLVARS_OK) {
-    return err;
-  }
+  colvarbias::init(conf);
   cvm::main()->cite_feature("ALB colvar bias implementation");
 
   enable(f_cvb_scalar_variables);

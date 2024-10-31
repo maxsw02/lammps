@@ -20,7 +20,7 @@ Examples
 
 .. code-block:: LAMMPS
 
-   fix 1 all accelerate/cos 2.0e-7
+   fix 1 all accelerate/cos 0.02e-5
 
 Description
 """""""""""
@@ -57,18 +57,19 @@ where :math:`m_i`, :math:`v_{i,x}`, and :math:`z_i` are the mass,
 :math:`x`-component velocity, and :math:`z`-coordinate of a particle,
 respectively.
 
-The velocity amplitude :math:`V` can be calculated with :doc:`compute
-viscosity/cos <compute_viscosity_cos>`, which enables viscosity
-calculation with periodic perturbation method, as described by
-:ref:`Hess<Hess2>`.  Because the applied acceleration drives the system
-away from equilibration, the calculated shear viscosity is lower than
-the intrinsic viscosity due to the shear-thinning effect.  Extrapolation
-to zero acceleration should generally be performed to predict the
-zero-shear viscosity.  As the shear stress decreases, the
-signal-to-noise ratio decreases rapidly, and the simulation time must be
-extended accordingly to get converged results.
+The velocity amplitude :math:`V` can be calculated with
+:doc:`compute viscosity/cos <compute_viscosity_cos>`,
+which enables viscosity calculation with periodic perturbation method,
+as described by :ref:`Hess<Hess2>`.
+Because the applied acceleration drives the system away from equilibration,
+the calculated shear viscosity is lower than the intrinsic viscosity
+due to the shear-thinning effect.
+Extrapolation to zero acceleration should generally be performed to
+predict the zero-shear viscosity.
+As the shear stress decreases, the signal-noise ratio decreases rapidly,
+the simulation time must be extended accordingly to get converged result.
 
-In order to get meaningful results, the group ID of this fix should be all.
+In order to get meaningful result, the group ID of this fix should be all.
 
 ----------
 
@@ -80,16 +81,12 @@ None of the fix_modify options are relevant to this fix.
 No global or per-atom quantities are stored by this fix for access by various
 output commands.  No parameter of this fix can be used with the start/stop
 keywords of the run command.
-
 This fix is not invoked during energy minimization.
 
 Restrictions
 """"""""""""
 
-This fix is part of the MISC package.  It is only enabled if LAMMPS was
-built with that package.  See the :doc:`Build package <Build_package>`
-page for more info.
-
+This command is only available when LAMMPS was built with the MISC package.
 Since this fix depends on the :math:`z`-coordinate of atoms, it cannot be used
 in 2d simulations.
 

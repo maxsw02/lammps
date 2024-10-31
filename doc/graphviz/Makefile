@@ -16,11 +16,8 @@ clean:
 	rm -f $(IMGSVG) $(IMGPDF) $(IMGPNG) *~
 
 ifeq ($(HAS_DOT),YES)
-$(IMGDIR)/lammps-classes.png : lammps-classes.dot
-	dot -Tpng -Kneato -o $@ $<
-
 $(IMGDIR)/%.png: %.dot
-	dot -Tpng -Kdot -o $@ $<
+	dot -Tpng -Kneato -o $@ $<
 endif
 
 ifeq ($(HAS_DOT),NO)

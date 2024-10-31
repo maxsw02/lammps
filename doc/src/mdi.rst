@@ -101,7 +101,7 @@ letter perform actions.  Commands that start with "@" are MDI "node"
 commands, which are described further below.
 
 .. list-table::
-   :widths: 33 67
+   :widths: 20 80
    :header-rows: 1
 
    * - Command name

@@ -1225,9 +1225,7 @@ __kernel void k_hippo_udirect2b(const __global numtyp4 *restrict x_,
   atom_info(t_per_atom,ii,tid,offset);
 
   int n_stride;
-#if (SHUFFLE_AVAIL == 0)
   local_allocate_store_charge();
-#endif
 
   acctyp _fieldp[6];
   for (int l=0; l<6; l++) _fieldp[l]=(acctyp)0;
@@ -1412,9 +1410,7 @@ __kernel void k_hippo_umutual2b(const __global numtyp4 *restrict x_,
   atom_info(t_per_atom,ii,tid,offset);
 
   int n_stride;
-#if (SHUFFLE_AVAIL == 0)
   local_allocate_store_charge();
-#endif
 
   acctyp _fieldp[6];
   for (int l=0; l<6; l++) _fieldp[l]=(acctyp)0;
@@ -2456,13 +2452,13 @@ __kernel void k_hippo_special15(__global int * dev_nbor,
                           const __global tagint *restrict special15,
                           const int inum, const int nall, const int nbor_pitch,
                           const int t_per_atom) {
-  int tid, ii, offset, n_stride, j;
+  int tid, ii, offset, n_stride, i;
   atom_info(t_per_atom,ii,tid,offset);
 
   if (ii<inum) {
 
     int numj, nbor, nbor_end;
-    nbor_info(dev_nbor,dev_packed,nbor_pitch,t_per_atom,ii,offset,j,numj,
+    nbor_info(dev_nbor,dev_packed,nbor_pitch,t_per_atom,ii,offset,i,numj,
               n_stride,nbor_end,nbor);
 
     int n15 = nspecial15[ii];
@@ -2471,7 +2467,7 @@ __kernel void k_hippo_special15(__global int * dev_nbor,
 
       int sj=dev_packed[nbor];
       int which = sj >> SBBITS & 3;
-      j = sj & NEIGHMASK;
+      int j = sj & NEIGHMASK;
       tagint jtag = tag[j];
 
       if (!which) {

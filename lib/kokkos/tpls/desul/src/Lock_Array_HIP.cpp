@@ -11,7 +11,8 @@ SPDX-License-Identifier: (BSD-3-Clause)
 #include <sstream>
 #include <string>
 
-#ifdef DESUL_ATOMICS_ENABLE_HIP_SEPARABLE_COMPILATION
+#ifdef DESUL_HAVE_HIP_ATOMICS
+#ifdef DESUL_HIP_RDC
 namespace desul {
 namespace Impl {
 __device__ __constant__ int32_t* HIP_SPACE_ATOMIC_LOCKS_DEVICE = nullptr;
@@ -69,7 +70,7 @@ void init_lock_arrays_hip() {
                             "init_lock_arrays_hip: hipMallocHost host locks");
 
   auto error_sync1 = hipDeviceSynchronize();
-  copy_hip_lock_arrays_to_device();
+  DESUL_IMPL_COPY_HIP_LOCK_ARRAYS_TO_DEVICE();
   check_error_and_throw_hip(error_sync1, "init_lock_arrays_hip: post malloc");
 
   init_lock_arrays_hip_kernel<<<(HIP_SPACE_ATOMIC_MASK + 1 + 255) / 256, 256>>>();
@@ -87,8 +88,8 @@ void finalize_lock_arrays_hip() {
   check_error_and_throw_hip(error_free2, "finalize_lock_arrays_hip: free host locks");
   HIP_SPACE_ATOMIC_LOCKS_DEVICE_h = nullptr;
   HIP_SPACE_ATOMIC_LOCKS_NODE_h = nullptr;
-#ifdef DESUL_ATOMICS_ENABLE_HIP_SEPARABLE_COMPILATION
-  copy_hip_lock_arrays_to_device();
+#ifdef DESUL_HIP_RDC
+  DESUL_IMPL_COPY_HIP_LOCK_ARRAYS_TO_DEVICE();
 #endif
 }
 
@@ -98,3 +99,4 @@ template void finalize_lock_arrays_hip<int>();
 }  // namespace Impl
 
 }  // namespace desul
+#endif

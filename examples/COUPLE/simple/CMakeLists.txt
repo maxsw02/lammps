@@ -1,6 +1,4 @@
-# -*- CMake -*- file for simple examples using the LAMMPS library interface
-
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
 
 # enforce out-of-source build
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
@@ -20,7 +18,9 @@ endif()
 # and prints lots of pointless warnings about "unsafe" functions
 if(MSVC)
   if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options(/EHsc)
+    if(LAMMPS_EXCEPTIONS)
+      add_compile_options(/EHsc)
+    endif()
   endif()
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()

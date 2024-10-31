@@ -1,5 +1,4 @@
 .. index:: fix efield
-.. index:: fix efield/kk
 .. index:: fix efield/tip4p
 
 fix efield command
@@ -210,12 +209,6 @@ the iteration count during the minimization.
    added forces to be included in the total potential energy of the
    system (the quantity being minimized), you MUST enable the
    :doc:`fix_modify <fix_modify>` *energy* option for this fix.
-
-----------
-
-.. include:: accel_styles.rst
-
-----------
 
 Restrictions
 """"""""""""

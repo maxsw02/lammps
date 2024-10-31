@@ -25,8 +25,9 @@ protected:
 
     void SetUp() override
     {
-        const char *args[] = {"LAMMPS_test", "-log", "none", "-echo", "screen", "-nocite", "-var",
-                              "x",           "2",    "-var", "zpos",  "1.5",    nullptr};
+        const char *args[] = {"LAMMPS_test", "-log", "none", "-echo", "screen", "-nocite",
+                              "-var",        "x",    "2",    "-var",  "zpos",   "1.5",
+                              nullptr};
 
         char **argv = (char **)args;
         int argc    = (sizeof(args) / sizeof(char *)) - 1;

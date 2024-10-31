@@ -1,30 +1,26 @@
-.. only:: html
+.. table_from_list::
+   :columns: 3
 
-   .. table_from_list::
-      :columns: 5
-
-      * :doc:`General commands <Commands_all>`
-      * :doc:`Fix styles <Commands_fix>`
-      * :doc:`Compute styles <Commands_compute>`
-      * :doc:`Pair styles <Commands_pair>`
-      * :ref:`Bond styles <bond>`
-      * :ref:`Angle styles <angle>`
-      * :ref:`Dihedral styles <dihedral>`
-      * :ref:`Improper styles <improper>`
-      * :doc:`KSpace styles <Commands_kspace>`
-      * :doc:`Dump styles <Commands_dump>`
-
-.. raw:: latex
-
-   \clearpage
+   * :doc:`General commands <Commands_all>`
+   * :doc:`Fix styles <Commands_fix>`
+   * :doc:`Compute styles <Commands_compute>`
+   * :doc:`Pair styles <Commands_pair>`
+   * :ref:`Bond styles <bond>`
+   * :ref:`Angle styles <angle>`
+   * :ref:`Dihedral styles <dihedral>`
+   * :ref:`Improper styles <improper>`
+   * :doc:`KSpace styles <Commands_kspace>`
+   * :doc:`Dump styles <Commands_dump>`
 
 General commands
 ================
 
-An alphabetic list of general LAMMPS commands.
+An alphabetic list of general LAMMPS commands.  Note that style
+commands with many variants, can be more easily accessed via the small
+table above.
 
 .. table_from_list::
-   :columns: 6
+   :columns: 5
 
    * :doc:`angle_coeff <angle_coeff>`
    * :doc:`angle_style <angle_style>`
@@ -58,7 +54,6 @@ An alphabetic list of general LAMMPS commands.
    * :doc:`echo <echo>`
    * :doc:`fix <fix>`
    * :doc:`fix_modify <fix_modify>`
-   * :doc:`geturl <geturl>`
    * :doc:`group <group>`
    * :doc:`if <if>`
    * :doc:`improper_coeff <improper_coeff>`
@@ -126,7 +121,7 @@ commands have accelerated versions.  This is indicated by an
 additional letter in parenthesis: k = KOKKOS.
 
 .. table_from_list::
-   :columns: 6
+   :columns: 5
 
    * :doc:`dynamical_matrix (k) <dynamical_matrix>`
    * :doc:`group2ndx <group2ndx>`

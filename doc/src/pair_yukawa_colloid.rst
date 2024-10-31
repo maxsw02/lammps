@@ -1,12 +1,11 @@
 .. index:: pair_style yukawa/colloid
 .. index:: pair_style yukawa/colloid/gpu
-.. index:: pair_style yukawa/colloid/kk
 .. index:: pair_style yukawa/colloid/omp
 
 pair_style yukawa/colloid command
 =================================
 
-Accelerator Variants: *yukawa/colloid/gpu*, *yukawa/colloid/kk*, *yukawa/colloid/omp*
+Accelerator Variants: *yukawa/colloid/gpu*, *yukawa/colloid/omp*
 
 Syntax
 """"""
@@ -131,12 +130,6 @@ Per-particle polydispersity is not yet supported by this pair style;
 per-type polydispersity is allowed.  This means all particles of the
 same type must have the same diameter.  Each type can have a different
 diameter.
-
-----------
-
-.. include:: accel_styles.rst
-
-----------
 
 Related commands
 """"""""""""""""

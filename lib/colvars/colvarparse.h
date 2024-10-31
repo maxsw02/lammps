@@ -11,7 +11,6 @@
 #define COLVARPARSE_H
 
 #include <cstring>
-#include <list>
 #include <string>
 
 #include "colvarmodule.h"
@@ -41,7 +40,7 @@ public:
   void set_string(std::string const &conf);
 
   /// Default destructor
-  ~colvarparse() override;
+  virtual ~colvarparse();
 
   /// Get the configuration string (includes comments)
   inline std::string const & get_config() const
@@ -110,12 +109,12 @@ public:
   bool get_keyval(std::string const &conf,
                   char const *key,
                   int &value,
-                  int const &def_value = 0,
+                  int const &def_value = (int)0,
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
                   size_t &value,
-                  size_t const &def_value = 0,
+                  size_t const &def_value = (size_t)0,
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
@@ -135,7 +134,7 @@ public:
   bool get_keyval(std::string const &conf,
                   char const *key,
                   cvm::real &value,
-                  cvm::real const &def_value = 0.0,
+                  cvm::real const &def_value = (cvm::real)0.0,
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
@@ -160,17 +159,17 @@ public:
   bool get_keyval(std::string const &conf,
                   char const *key,
                   std::vector<int> &values,
-                  std::vector<int> const &def_values = std::vector<int>(0, 0),
+                  std::vector<int> const &def_values = std::vector<int>(0, (int)0),
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
                   std::vector<size_t> &values,
-                  std::vector<size_t> const &def_values = std::vector<size_t>(0, 0),
+                  std::vector<size_t> const &def_values = std::vector<size_t>(0, (size_t)0),
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
                   std::vector<long> &values,
-                  std::vector<long> const &def_values = std::vector<long>(0, 0),
+                  std::vector<long> const &def_values = std::vector<long>(0, (long)0),
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
@@ -180,7 +179,7 @@ public:
   bool get_keyval(std::string const &conf,
                   char const *key,
                   std::vector<cvm::real> &values,
-                  std::vector<cvm::real> const &def_values = std::vector<cvm::real>(0, 0.0),
+                  std::vector<cvm::real> const &def_values = std::vector<cvm::real>(0, (cvm::real)0.0),
                   Parse_Mode const parse_mode = parse_normal);
   bool get_keyval(std::string const &conf,
                   char const *key,
@@ -263,41 +262,33 @@ public:
   {
     std::string out = "";
     for (size_t i = 0; i < in.size(); i++) {
-      out.append(1, static_cast<char>( ::tolower(in[i])) );
+      out.append(1, (char) ::tolower(in[i]) );
     }
     return out;
   }
 
-  /// Helper class to read a block "key { ... }" from a stream and store it in a string
+  /// \brief Helper class to read a block of the type "key { ... }"
+  /// from a stream and store it in a string
   ///
-  /// Useful on restarts, where the file is too big to be loaded in a string
-  /// by key_lookup(); it can only check that the keyword is correct and the
-  /// block is properly delimited by braces, not skipping other blocks
+  /// Useful on restarts, where the file is too big to be loaded in a
+  /// string by key_lookup; it can only check that the keyword is
+  /// correct and the block is properly delimited by braces, not
+  /// skipping other blocks
   class read_block {
+
+    /// The keyword that identifies the block
+    std::string const key;
+
+    /// Where to keep the data (may be NULL)
+    std::string * const data;
+
   public:
 
-    read_block(std::string const &key, std::string *data = nullptr);
+    read_block(std::string const &key_in, std::string *data_in = NULL);
 
     ~read_block();
 
-    /// Read block from stream, first check that key matches, then call read_contents()
     friend std::istream & operator >> (std::istream &is, read_block const &rb);
-
-    /// Read block from stream, first check that key matches, then call read_contents()
-    friend cvm::memory_stream & operator >> (cvm::memory_stream &is, read_block const &rb);
-
-  private:
-
-    /// Keyword that identifies the block
-    std::string const key;
-
-    /// Where to keep the data
-    std::string * const data;
-
-    /// Read the contents of a formatted block after checking that the keyword matches
-    /// \param[in] is Stream object
-    /// \param[in] block_only If true, stream is assumed to contain only the block without braces
-    std::istream & read_block_contents(std::istream &is, bool block_only = false) const;
   };
 
 
@@ -313,8 +304,8 @@ public:
   /// within "conf", useful when doing multiple calls
   bool key_lookup(std::string const &conf,
                   char const *key,
-                  std::string *data = nullptr,
-                  size_t *save_pos = nullptr);
+                  std::string *data = NULL,
+                  size_t *save_pos = NULL);
 
   /// \brief Reads a configuration line, adds it to config_string, and returns
   /// the stream \param is Input stream \param line String that will hold the

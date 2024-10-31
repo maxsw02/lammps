@@ -13,7 +13,6 @@
 
 #include "preferences.h"
 
-#include "helpers.h"
 #include "lammpsgui.h"
 #include "lammpswrapper.h"
 #include "ui_lammpsgui.h"
@@ -23,6 +22,7 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QDoubleValidator>
 #include <QFileDialog>
 #include <QFontDialog>
@@ -37,12 +37,9 @@
 #include <QRadioButton>
 #include <QSettings>
 #include <QSpacerItem>
-#include <QSpinBox>
 #include <QTabWidget>
-#if defined(_OPENMP)
-#include <QThread>
-#endif
 #include <QVBoxLayout>
+#include <QThread>
 
 #if defined(_OPENMP)
 #include <omp.h>
@@ -58,15 +55,22 @@
 #include <unistd.h>
 #endif
 
+// duplicate string
+static char *mystrdup(const std::string &text)
+{
+    auto tmp = new char[text.size() + 1];
+    memcpy(tmp, text.c_str(), text.size() + 1);
+    return tmp;
+}
+
 Preferences::Preferences(LammpsWrapper *_lammps, QWidget *parent) :
-    QDialog(parent), need_relaunch(false), tabWidget(new QTabWidget),
+    QDialog(parent), tabWidget(new QTabWidget),
     buttonBox(new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel)),
-    settings(new QSettings), lammps(_lammps)
+    settings(new QSettings), lammps(_lammps), need_relaunch(false)
 {
     tabWidget->addTab(new GeneralTab(settings, lammps), "&General Settings");
     tabWidget->addTab(new AcceleratorTab(settings, lammps), "&Accelerators");
     tabWidget->addTab(new SnapshotTab(settings), "&Snapshot Image");
-    tabWidget->addTab(new EditorTab(settings), "&Editor Settings");
 
     connect(buttonBox, &QDialogButtonBox::accepted, this, &Preferences::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -75,9 +79,8 @@ Preferences::Preferences(LammpsWrapper *_lammps, QWidget *parent) :
     layout->addWidget(tabWidget);
     layout->addWidget(buttonBox);
     setLayout(layout);
-    setWindowIcon(QIcon(":/icons/lammps-icon-128x128.png"));
     setWindowTitle("LAMMPS-GUI - Preferences");
-    resize(600, 450);
+    resize(500, 400);
 }
 
 Preferences::~Preferences()
@@ -94,25 +97,25 @@ void Preferences::accept()
 
     // store selected accelerator
     QList<QRadioButton *> allButtons = tabWidget->findChildren<QRadioButton *>();
-    for (auto &allButton : allButtons) {
-        if (allButton->isChecked()) {
-            if (allButton->objectName() == "none")
+    for (int i = 0; i < allButtons.size(); ++i) {
+        if (allButtons[i]->isChecked()) {
+            if (allButtons[i]->objectName() == "none")
                 settings->setValue("accelerator", QString::number(AcceleratorTab::None));
-            if (allButton->objectName() == "opt")
+            if (allButtons[i]->objectName() == "opt")
                 settings->setValue("accelerator", QString::number(AcceleratorTab::Opt));
-            if (allButton->objectName() == "openmp")
+            if (allButtons[i]->objectName() == "openmp")
                 settings->setValue("accelerator", QString::number(AcceleratorTab::OpenMP));
-            if (allButton->objectName() == "intel")
+            if (allButtons[i]->objectName() == "intel")
                 settings->setValue("accelerator", QString::number(AcceleratorTab::Intel));
-            if (allButton->objectName() == "kokkos")
+            if (allButtons[i]->objectName() == "kokkos")
                 settings->setValue("accelerator", QString::number(AcceleratorTab::Kokkos));
-            if (allButton->objectName() == "gpu")
+            if (allButtons[i]->objectName() == "gpu")
                 settings->setValue("accelerator", QString::number(AcceleratorTab::Gpu));
         }
     }
 
-    // store number of threads, reset to 1 for "None" and "Opt" settings
-    auto *field = tabWidget->findChild<QLineEdit *>("nthreads");
+    // store number of threads
+    QLineEdit *field = tabWidget->findChild<QLineEdit *>("nthreads");
     if (field) {
         int accel = settings->value("accelerator", AcceleratorTab::None).toInt();
         if ((accel == AcceleratorTab::None) || (accel == AcceleratorTab::Opt))
@@ -133,19 +136,17 @@ void Preferences::accept()
     field = tabWidget->findChild<QLineEdit *>("zoom");
     if (field)
         if (field->hasAcceptableInput()) settings->setValue("zoom", field->text());
-    auto *box = tabWidget->findChild<QCheckBox *>("anti");
+    QCheckBox *box = tabWidget->findChild<QCheckBox *>("anti");
     if (box) settings->setValue("antialias", box->isChecked());
     box = tabWidget->findChild<QCheckBox *>("ssao");
     if (box) settings->setValue("ssao", box->isChecked());
-    box = tabWidget->findChild<QCheckBox *>("shiny");
-    if (box) settings->setValue("shinystyle", box->isChecked());
     box = tabWidget->findChild<QCheckBox *>("box");
     if (box) settings->setValue("box", box->isChecked());
     box = tabWidget->findChild<QCheckBox *>("axes");
     if (box) settings->setValue("axes", box->isChecked());
     box = tabWidget->findChild<QCheckBox *>("vdwstyle");
     if (box) settings->setValue("vdwstyle", box->isChecked());
-    auto *combo = tabWidget->findChild<QComboBox *>("background");
+    QComboBox *combo = tabWidget->findChild<QComboBox *>("background");
     if (combo) settings->setValue("background", combo->currentText());
     combo = tabWidget->findChild<QComboBox *>("boxcolor");
     if (combo) settings->setValue("boxcolor", combo->currentText());
@@ -166,13 +167,6 @@ void Preferences::accept()
     if (box) settings->setValue("viewlog", box->isChecked());
     box = tabWidget->findChild<QCheckBox *>("viewchart");
     if (box) settings->setValue("viewchart", box->isChecked());
-    box = tabWidget->findChild<QCheckBox *>("viewslide");
-    if (box) settings->setValue("viewslide", box->isChecked());
-
-    auto *spin = tabWidget->findChild<QSpinBox *>("updfreq");
-    if (spin) settings->setValue("updfreq", spin->value());
-    spin = tabWidget->findChild<QSpinBox *>("updchart");
-    if (spin) settings->setValue("updchart", spin->value());
 
     if (need_relaunch) {
         QMessageBox msg(QMessageBox::Information, QString("Relaunching LAMMPS-GUI"),
@@ -180,30 +174,10 @@ void Preferences::accept()
                                 "LAMMPS-GUI must be relaunched."),
                         QMessageBox::Ok);
         msg.exec();
-        const char *path = mystrdup(QCoreApplication::applicationFilePath());
-        const char *arg0 = mystrdup(QCoreApplication::arguments().at(0));
-        execl(path, arg0, (char *)nullptr);
+        const char *path = mystrdup(QCoreApplication::applicationFilePath().toStdString());
+        const char *arg0 = mystrdup(QCoreApplication::arguments().at(0).toStdString());
+        execl(path, arg0, (char *)NULL);
     }
-
-    // reformatting settings
-
-    settings->beginGroup("reformat");
-    spin = tabWidget->findChild<QSpinBox *>("cmdval");
-    if (spin) settings->setValue("command", spin->value());
-    spin = tabWidget->findChild<QSpinBox *>("typeval");
-    if (spin) settings->setValue("type", spin->value());
-    spin = tabWidget->findChild<QSpinBox *>("idval");
-    if (spin) settings->setValue("id", spin->value());
-    spin = tabWidget->findChild<QSpinBox *>("nameval");
-    if (spin) settings->setValue("name", spin->value());
-    box = tabWidget->findChild<QCheckBox *>("retval");
-    if (box) settings->setValue("return", box->isChecked());
-    box = tabWidget->findChild<QCheckBox *>("autoval");
-    if (box) settings->setValue("automatic", box->isChecked());
-    box = tabWidget->findChild<QCheckBox *>("savval");
-    if (box) settings->setValue("autosave", box->isChecked());
-    settings->endGroup();
-
     QDialog::accept();
 }
 
@@ -212,32 +186,30 @@ GeneralTab::GeneralTab(QSettings *_settings, LammpsWrapper *_lammps, QWidget *pa
 {
     auto *layout = new QVBoxLayout;
 
-    auto *echo = new QCheckBox("Echo input to output buffer");
+    auto *echo = new QCheckBox("Echo input to log");
     echo->setObjectName("echo");
     echo->setCheckState(settings->value("echo", false).toBool() ? Qt::Checked : Qt::Unchecked);
     auto *cite = new QCheckBox("Include citation details");
     cite->setObjectName("cite");
     cite->setCheckState(settings->value("cite", false).toBool() ? Qt::Checked : Qt::Unchecked);
-    auto *logv = new QCheckBox("Show Output window by default");
+    auto *logv = new QCheckBox("Show log window by default");
     logv->setObjectName("viewlog");
     logv->setCheckState(settings->value("viewlog", true).toBool() ? Qt::Checked : Qt::Unchecked);
-    auto *pltv = new QCheckBox("Show Charts window by default");
+    auto *pltv = new QCheckBox("Show chart window by default");
     pltv->setObjectName("viewchart");
     pltv->setCheckState(settings->value("viewchart", true).toBool() ? Qt::Checked : Qt::Unchecked);
-    auto *sldv = new QCheckBox("Show Slide Show window by default");
-    sldv->setObjectName("viewslide");
-    sldv->setCheckState(settings->value("viewslide", true).toBool() ? Qt::Checked : Qt::Unchecked);
-    auto *logr = new QCheckBox("Replace Output window on new run");
+    auto *logr = new QCheckBox("Replace log window on new run");
     logr->setObjectName("logreplace");
-    logr->setCheckState(settings->value("logreplace", true).toBool() ? Qt::Checked : Qt::Unchecked);
-    auto *imgr = new QCheckBox("Replace Image window on new render");
+    logr->setCheckState(settings->value("logreplace", false).toBool() ? Qt::Checked
+                                                                      : Qt::Unchecked);
+    auto *imgr = new QCheckBox("Replace image window on new render");
     imgr->setObjectName("imagereplace");
-    imgr->setCheckState(settings->value("imagereplace", true).toBool() ? Qt::Checked
-                                                                       : Qt::Unchecked);
-    auto *pltr = new QCheckBox("Replace Charts window on new run");
+    imgr->setCheckState(settings->value("imagereplace", false).toBool() ? Qt::Checked
+                                                                        : Qt::Unchecked);
+    auto *pltr = new QCheckBox("Replace chart window on new run");
     pltr->setObjectName("chartreplace");
-    pltr->setCheckState(settings->value("chartreplace", true).toBool() ? Qt::Checked
-                                                                       : Qt::Unchecked);
+    pltr->setCheckState(settings->value("chartreplace", false).toBool() ? Qt::Checked
+                                                                        : Qt::Unchecked);
 
 #if defined(LAMMPS_GUI_USE_PLUGIN)
     auto *pluginlabel = new QLabel("Path to LAMMPS Shared Library File:");
@@ -252,39 +224,20 @@ GeneralTab::GeneralTab(QSettings *_settings, LammpsWrapper *_lammps, QWidget *pa
     connect(pluginbrowse, &QPushButton::released, this, &GeneralTab::pluginpath);
 #endif
 
-    auto *gridlayout = new QGridLayout;
+    auto *fontlayout = new QHBoxLayout;
     auto *getallfont =
-        new QPushButton(QIcon(":/icons/preferences-desktop-font.png"), "Select Default Font...");
+        new QPushButton(QIcon(":/preferences-desktop-font.png"), "Select Default Font...");
     auto *gettextfont =
-        new QPushButton(QIcon(":/icons/preferences-desktop-font.png"), "Select Text Font...");
-    gridlayout->addWidget(getallfont, 0, 0);
-    gridlayout->addWidget(gettextfont, 0, 1);
+        new QPushButton(QIcon(":/preferences-desktop-font.png"), "Select Text Font...");
+    fontlayout->addWidget(getallfont);
+    fontlayout->addWidget(gettextfont);
     connect(getallfont, &QPushButton::released, this, &GeneralTab::newallfont);
     connect(gettextfont, &QPushButton::released, this, &GeneralTab::newtextfont);
-
-    auto *freqlabel = new QLabel("Data update interval (ms)");
-    auto *freqval   = new QSpinBox;
-    freqval->setRange(1, 1000);
-    freqval->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
-    freqval->setValue(settings->value("updfreq", "10").toInt());
-    freqval->setObjectName("updfreq");
-    gridlayout->addWidget(freqlabel, 1, 0);
-    gridlayout->addWidget(freqval, 1, 1);
-
-    auto *chartlabel = new QLabel("Charts update interval (ms)");
-    auto *chartval   = new QSpinBox;
-    chartval->setRange(1, 5000);
-    chartval->setStepType(QAbstractSpinBox::AdaptiveDecimalStepType);
-    chartval->setValue(settings->value("updchart", "500").toInt());
-    chartval->setObjectName("updchart");
-    gridlayout->addWidget(chartlabel, 2, 0);
-    gridlayout->addWidget(chartval, 2, 1);
 
     layout->addWidget(echo);
     layout->addWidget(cite);
     layout->addWidget(logv);
     layout->addWidget(pltv);
-    layout->addWidget(sldv);
     layout->addWidget(logr);
     layout->addWidget(pltr);
     layout->addWidget(imgr);
@@ -292,35 +245,27 @@ GeneralTab::GeneralTab(QSettings *_settings, LammpsWrapper *_lammps, QWidget *pa
     layout->addWidget(pluginlabel);
     layout->addLayout(pluginlayout);
 #endif
-    layout->addLayout(gridlayout);
+    layout->addLayout(fontlayout);
     layout->addStretch(1);
     setLayout(layout);
 }
 
 void GeneralTab::updatefonts(const QFont &all, const QFont &text)
 {
-    LammpsGui *main = nullptr;
+    LammpsGui *main;
     for (QWidget *widget : QApplication::topLevelWidgets())
         if (widget->objectName() == "LammpsGui") main = dynamic_cast<LammpsGui *>(widget);
 
-    if (main) {
-        main->setFont(all);
-        main->ui->textEdit->document()->setDefaultFont(text);
-        if (main->wizard) main->wizard->setFont(all);
-    }
-
-    Preferences *prefs = nullptr;
-    for (QWidget *widget : QApplication::topLevelWidgets())
-        if (widget->objectName() == "preferences") prefs = dynamic_cast<Preferences *>(widget);
-    if (prefs) prefs->setFont(all);
+    QApplication::setFont(all);
+    main->ui->textEdit->document()->setDefaultFont(text);
 }
 
 void GeneralTab::newallfont()
 {
     QSettings settings;
     QFont all, text;
-    all.fromString(settings.value("allfont", QFont("Arial", -1).toString()).toString());
-    text.fromString(settings.value("textfont", QFont("Monospace", -1).toString()).toString());
+    all.fromString(settings.value("allfont", "").toString());
+    text.fromString(settings.value("textfont", "").toString());
 
     bool ok    = false;
     QFont font = QFontDialog::getFont(&ok, all, this, QString("Select Default Font"));
@@ -333,8 +278,8 @@ void GeneralTab::newtextfont()
 {
     QSettings settings;
     QFont all, text;
-    all.fromString(settings.value("allfont", QFont("Arial", -1).toString()).toString());
-    text.fromString(settings.value("textfont", QFont("Monospace", -1).toString()).toString());
+    all.fromString(settings.value("allfont", "").toString());
+    text.fromString(settings.value("textfont", "").toString());
 
     bool ok    = false;
     QFont font = QFontDialog::getFont(&ok, text, this, QString("Select Text Font"));
@@ -345,7 +290,7 @@ void GeneralTab::newtextfont()
 
 void GeneralTab::pluginpath()
 {
-    auto *field = findChild<QLineEdit *>("pluginedit");
+    QLineEdit *field = findChild<QLineEdit *>("pluginedit");
     QString pluginfile =
         QFileDialog::getOpenFileName(this, "Select Shared LAMMPS Library to Load", field->text(),
                                      "Shared Objects (*.so *.dll *.dylib)");
@@ -431,19 +376,11 @@ AcceleratorTab::AcceleratorTab(QSettings *_settings, LammpsWrapper *_lammps, QWi
 #endif
     auto *choices      = new QFrame;
     auto *choiceLayout = new QVBoxLayout;
-#if defined(_OPENMP)
-    auto *ntlabel  = new QLabel(QString("Number of threads (max %1):").arg(maxthreads));
-    auto *ntchoice = new QLineEdit(settings->value("nthreads", maxthreads).toString());
-#else
-    auto *ntlabel  = new QLabel(QString("Number of threads (OpenMP not available):"));
-    auto *ntchoice = new QLineEdit("1");
-#endif
-    auto *intval = new QIntValidator(1, maxthreads, this);
+    auto *ntlabel      = new QLabel(QString("Number of threads (max %1):").arg(maxthreads));
+    auto *ntchoice     = new QLineEdit(settings->value("nthreads", maxthreads).toString());
+    auto *intval       = new QIntValidator(1, maxthreads, this);
     ntchoice->setValidator(intval);
     ntchoice->setObjectName("nthreads");
-#if !defined(_OPENMP)
-    ntchoice->setEnabled(false);
-#endif
 
     choiceLayout->addWidget(ntlabel);
     choiceLayout->addWidget(ntchoice);
@@ -464,19 +401,17 @@ SnapshotTab::SnapshotTab(QSettings *_settings, QWidget *parent) :
     auto *zoom  = new QLabel("Zoom factor:");
     auto *anti  = new QLabel("Antialias:");
     auto *ssao  = new QLabel("HQ Image mode:");
-    auto *shiny = new QLabel("Shiny Image mode:");
     auto *bbox  = new QLabel("Show Box:");
     auto *axes  = new QLabel("Show Axes:");
     auto *vdw   = new QLabel("VDW Style:");
     auto *cback = new QLabel("Background Color:");
     auto *cbox  = new QLabel("Box Color:");
     settings->beginGroup("snapshot");
-    auto *xval = new QLineEdit(settings->value("xsize", "600").toString());
+    auto *xval = new QLineEdit(settings->value("xsize", "800").toString());
     auto *yval = new QLineEdit(settings->value("ysize", "600").toString());
     auto *zval = new QLineEdit(settings->value("zoom", "1.0").toString());
     auto *aval = new QCheckBox;
     auto *sval = new QCheckBox;
-    auto *hval = new QCheckBox;
     auto *bval = new QCheckBox;
     auto *eval = new QCheckBox;
     auto *vval = new QCheckBox;
@@ -484,8 +419,6 @@ SnapshotTab::SnapshotTab(QSettings *_settings, QWidget *parent) :
     sval->setObjectName("ssao");
     aval->setCheckState(settings->value("antialias", false).toBool() ? Qt::Checked : Qt::Unchecked);
     aval->setObjectName("anti");
-    hval->setCheckState(settings->value("shinystyle", true).toBool() ? Qt::Checked : Qt::Unchecked);
-    hval->setObjectName("shiny");
     bval->setCheckState(settings->value("box", true).toBool() ? Qt::Checked : Qt::Unchecked);
     bval->setObjectName("box");
     eval->setCheckState(settings->value("axes", false).toBool() ? Qt::Checked : Qt::Unchecked);
@@ -532,8 +465,6 @@ SnapshotTab::SnapshotTab(QSettings *_settings, QWidget *parent) :
     grid->addWidget(aval, i++, 1, Qt::AlignTop);
     grid->addWidget(ssao, i, 0, Qt::AlignTop);
     grid->addWidget(sval, i++, 1, Qt::AlignVCenter);
-    grid->addWidget(shiny, i, 0, Qt::AlignTop);
-    grid->addWidget(hval, i++, 1, Qt::AlignVCenter);
     grid->addWidget(bbox, i, 0, Qt::AlignTop);
     grid->addWidget(bval, i++, 1, Qt::AlignVCenter);
     grid->addWidget(axes, i, 0, Qt::AlignTop);
@@ -544,70 +475,6 @@ SnapshotTab::SnapshotTab(QSettings *_settings, QWidget *parent) :
     grid->addWidget(background, i++, 1, Qt::AlignVCenter);
     grid->addWidget(cbox, i, 0, Qt::AlignTop);
     grid->addWidget(boxcolor, i++, 1, Qt::AlignVCenter);
-
-    grid->addItem(new QSpacerItem(100, 100, QSizePolicy::Minimum, QSizePolicy::Expanding), i, 0);
-    grid->addItem(new QSpacerItem(100, 100, QSizePolicy::Minimum, QSizePolicy::Expanding), i, 1);
-    grid->addItem(new QSpacerItem(100, 100, QSizePolicy::Expanding, QSizePolicy::Expanding), i, 2);
-    setLayout(grid);
-}
-
-EditorTab::EditorTab(QSettings *_settings, QWidget *parent) : QWidget(parent), settings(_settings)
-{
-    settings->beginGroup("reformat");
-    auto *grid     = new QGridLayout;
-    auto *reformat = new QLabel("Tab Reformatting settings:");
-    auto *cmdlbl   = new QLabel("Command width:");
-    auto *typelbl  = new QLabel("Type width:");
-    auto *idlbl    = new QLabel("ID width:");
-    auto *namelbl  = new QLabel("Name width:");
-    auto *retlbl   = new QLabel("Reformat with 'Enter':");
-    auto *autolbl  = new QLabel("Automatic completion:");
-    auto *savlbl   = new QLabel("Auto-save on 'Run' and 'Quit':");
-    auto *cmdval   = new QSpinBox;
-    auto *typeval  = new QSpinBox;
-    auto *idval    = new QSpinBox;
-    auto *nameval  = new QSpinBox;
-    auto *retval   = new QCheckBox;
-    auto *autoval  = new QCheckBox;
-    auto *savval   = new QCheckBox;
-    cmdval->setObjectName("cmdval");
-    cmdval->setRange(1, 32);
-    cmdval->setValue(settings->value("command", "16").toInt());
-    typeval->setObjectName("typeval");
-    typeval->setRange(1, 32);
-    typeval->setValue(settings->value("type", "4").toInt());
-    idval->setObjectName("idval");
-    idval->setRange(1, 32);
-    idval->setValue(settings->value("id", "8").toInt());
-    nameval->setObjectName("nameval");
-    nameval->setRange(1, 32);
-    nameval->setValue(settings->value("name", "8").toInt());
-    retval->setObjectName("retval");
-    retval->setCheckState(settings->value("return", false).toBool() ? Qt::Checked : Qt::Unchecked);
-    autoval->setObjectName("autoval");
-    autoval->setCheckState(settings->value("automatic", true).toBool() ? Qt::Checked
-                                                                       : Qt::Unchecked);
-    savval->setObjectName("savval");
-    savval->setCheckState(settings->value("autosave", false).toBool() ? Qt::Checked
-                                                                      : Qt::Unchecked);
-    settings->endGroup();
-
-    int i = 0;
-    grid->addWidget(reformat, i++, 0, 1, 2, Qt::AlignTop | Qt::AlignHCenter);
-    grid->addWidget(cmdlbl, i, 0, Qt::AlignTop);
-    grid->addWidget(cmdval, i++, 1, Qt::AlignTop);
-    grid->addWidget(typelbl, i, 0, Qt::AlignTop);
-    grid->addWidget(typeval, i++, 1, Qt::AlignTop);
-    grid->addWidget(idlbl, i, 0, Qt::AlignTop);
-    grid->addWidget(idval, i++, 1, Qt::AlignTop);
-    grid->addWidget(namelbl, i, 0, Qt::AlignTop);
-    grid->addWidget(nameval, i++, 1, Qt::AlignTop);
-    grid->addWidget(retlbl, i, 0, Qt::AlignTop);
-    grid->addWidget(retval, i++, 1, Qt::AlignVCenter);
-    grid->addWidget(autolbl, i, 0, Qt::AlignTop);
-    grid->addWidget(autoval, i++, 1, Qt::AlignVCenter);
-    grid->addWidget(savlbl, i, 0, Qt::AlignTop);
-    grid->addWidget(savval, i++, 1, Qt::AlignVCenter);
 
     grid->addItem(new QSpacerItem(100, 100, QSizePolicy::Minimum, QSizePolicy::Expanding), i, 0);
     grid->addItem(new QSpacerItem(100, 100, QSizePolicy::Minimum, QSizePolicy::Expanding), i, 1);

@@ -229,7 +229,6 @@ TEST_F(GroupTest, SelectRestart)
                  command("group five subtract all half xxx"););
     TEST_FAILURE(".*ERROR: Group ID xxx does not exist.*",
                  command("group five intersect half top xxx"););
-    delete[] flags;
 }
 
 TEST_F(GroupTest, Molecular)
@@ -315,7 +314,7 @@ TEST_F(GroupTest, Dynamic)
                  command("group ramp variable grow"););
 }
 
-static constexpr double EPSILON = 1.0e-13;
+constexpr double EPSILON = 1.0e-13;
 
 TEST_F(GroupTest, VariableFunctions)
 {
@@ -342,9 +341,9 @@ TEST_F(GroupTest, VariableFunctions)
     int three = group->find("three");
     int four  = group->find("four");
 
-    auto *right = domain->get_region_by_id("right");
-    auto *left  = domain->get_region_by_id("left");
-    auto *top   = domain->get_region_by_id("top");
+    auto right = domain->get_region_by_id("right");
+    auto left  = domain->get_region_by_id("left");
+    auto top   = domain->get_region_by_id("top");
 
     EXPECT_EQ(group->count_all(), 64);
     EXPECT_EQ(group->count(one), 16);
@@ -469,6 +468,9 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
     ::testing::InitGoogleMock(&argc, argv);
+
+    if (LAMMPS_NS::platform::mpi_vendor() == "Open MPI" && !Info::has_exceptions())
+        std::cout << "Warning: using OpenMPI without exceptions. Death tests will be skipped\n";
 
     // handle arguments passed via environment variable
     if (const char *var = getenv("TEST_ARGS")) {

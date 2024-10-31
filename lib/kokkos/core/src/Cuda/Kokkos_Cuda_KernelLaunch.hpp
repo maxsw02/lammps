@@ -1,18 +1,46 @@
+/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 4.0
-//       Copyright (2022) National Technology & Engineering
+//                        Kokkos v. 3.0
+//       Copyright (2020) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
-// See https://kokkos.org/LICENSE for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
 //
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// 3. Neither the name of the Corporation nor the names of the
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+//
+// ************************************************************************
 //@HEADER
+*/
 
 #ifndef KOKKOS_CUDAEXEC_HPP
 #define KOKKOS_CUDAEXEC_HPP
@@ -21,12 +49,14 @@
 #ifdef KOKKOS_ENABLE_CUDA
 
 #include <mutex>
+#include <string>
 #include <cstdint>
 #include <cmath>
 #include <Kokkos_Parallel.hpp>
 #include <impl/Kokkos_Error.hpp>
 #include <Cuda/Kokkos_Cuda_abort.hpp>
 #include <Cuda/Kokkos_Cuda_Error.hpp>
+#include <Cuda/Kokkos_Cuda_Locks.hpp>
 #include <Cuda/Kokkos_Cuda_Instance.hpp>
 #include <impl/Kokkos_GraphImpl_fwd.hpp>
 #include <Cuda/Kokkos_Cuda_GraphNodeKernel.hpp>
@@ -117,43 +147,40 @@ inline bool is_empty_launch(dim3 const& grid, dim3 const& block) {
 }
 
 inline void check_shmem_request(CudaInternal const* cuda_instance, int shmem) {
-  int const maxShmemPerBlock = cuda_instance->m_deviceProp.sharedMemPerBlock;
-  if (maxShmemPerBlock < shmem) {
+  if (cuda_instance->m_maxShmemPerBlock < shmem) {
     Kokkos::Impl::throw_runtime_exception(
-        "CudaParallelLaunch (or graph node creation) FAILED: shared memory "
-        "request is too large");
+        std::string("CudaParallelLaunch (or graph node creation) FAILED: shared"
+                    " memory request is too large"));
   }
 }
 
-// These functions need to be templated on DriverType and LaunchBounds
+// These functions needs to be template on DriverType and LaunchBounds
 // so that the static bool is unique for each type combo
 // KernelFuncPtr does not necessarily contain that type information.
+
 template <class DriverType, class LaunchBounds, class KernelFuncPtr>
 const cudaFuncAttributes& get_cuda_kernel_func_attributes(
-    int cuda_device, const KernelFuncPtr& func) {
+    const KernelFuncPtr& func) {
   // Only call cudaFuncGetAttributes once for each unique kernel
   // by leveraging static variable initialization rules
-  static std::map<int, cudaFuncAttributes> func_attr;
-  if (func_attr.find(cuda_device) == func_attr.end()) {
+  auto wrap_get_attributes = [&]() -> cudaFuncAttributes {
     cudaFuncAttributes attr;
-    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaSetDevice(cuda_device));
     KOKKOS_IMPL_CUDA_SAFE_CALL(cudaFuncGetAttributes(&attr, func));
-    func_attr.emplace(cuda_device, attr);
-  }
-  return func_attr[cuda_device];
+    return attr;
+  };
+  static cudaFuncAttributes func_attr = wrap_get_attributes();
+  return func_attr;
 }
 
 template <class DriverType, class LaunchBounds, class KernelFuncPtr>
-inline void configure_shmem_preference(const int cuda_device,
-                                       const KernelFuncPtr& func,
+inline void configure_shmem_preference(const KernelFuncPtr& func,
                                        const cudaDeviceProp& device_props,
                                        const size_t block_size, int& shmem,
                                        const size_t occupancy) {
 #ifndef KOKKOS_ARCH_KEPLER
 
   const auto& func_attr =
-      get_cuda_kernel_func_attributes<DriverType, LaunchBounds>(cuda_device,
-                                                                func);
+      get_cuda_kernel_func_attributes<DriverType, LaunchBounds>(func);
 
   // Compute limits for number of blocks due to registers/SM
   const size_t regs_per_sm     = device_props.regsPerMultiprocessor;
@@ -169,9 +196,11 @@ inline void configure_shmem_preference(const int cuda_device,
   const size_t max_warps_per_sm_registers =
       cuda_max_warps_per_sm_registers(device_props, func_attr);
 
-  // Correct the number of blocks to respect the maximum number of warps per
-  // SM, which is constrained to be a multiple of the warp allocation
-  // granularity defined in `cuda_warp_per_sm_allocation_granularity`.
+  // Constrain the number of blocks to respect the maximum number of warps per
+  // SM On face value this should be an equality, but due to the warp
+  // granularity constraints noted in `cuda_max_warps_per_sm_registers` the
+  // left-hand-side of this comparison can overshoot what the hardware allows
+  // based on register counts alone
   while ((max_blocks_regs * block_size / device_props.warpSize) >
          max_warps_per_sm_registers)
     max_blocks_regs--;
@@ -219,11 +248,9 @@ inline void configure_shmem_preference(const int cuda_device,
   if (carveout > 100) carveout = 100;
 
   // Set the carveout, but only call it once per kernel or when it changes
-  // FIXME_CUDA_MULTIPLE_DEVICES
   auto set_cache_config = [&] {
-    KOKKOS_IMPL_CUDA_SAFE_CALL(
-        (CudaInternal::singleton().cuda_func_set_attribute_wrapper(
-            func, cudaFuncAttributePreferredSharedMemoryCarveout, carveout)));
+    KOKKOS_IMPL_CUDA_SAFE_CALL(cudaFuncSetAttribute(
+        func, cudaFuncAttributePreferredSharedMemoryCarveout, carveout));
     return carveout;
   };
   // Store the value in a static variable so we only reset if needed
@@ -365,10 +392,12 @@ struct CudaParallelLaunchKernelInvoker<
   static void invoke_kernel(DriverType const& driver, dim3 const& grid,
                             dim3 const& block, int shmem,
                             CudaInternal const* cuda_instance) {
-    (base_t::get_kernel_func())<<<grid, block, shmem,
-                                  cuda_instance->get_stream()>>>(driver);
+    (base_t::
+         get_kernel_func())<<<grid, block, shmem, cuda_instance->m_stream>>>(
+        driver);
   }
 
+#ifdef KOKKOS_CUDA_ENABLE_GRAPHS
   inline static void create_parallel_launch_graph_node(
       DriverType const& driver, dim3 const& grid, dim3 const& block, int shmem,
       CudaInternal const* cuda_instance) {
@@ -381,14 +410,18 @@ struct CudaParallelLaunchKernelInvoker<
 
     if (!Impl::is_empty_launch(grid, block)) {
       Impl::check_shmem_request(cuda_instance, shmem);
-      if constexpr (DriverType::Policy::
+      if (DriverType::Policy::
                         experimental_contains_desired_occupancy) {
+      /*
         int desired_occupancy =
             driver.get_policy().impl_get_desired_occupancy().value();
         size_t block_size = block.x * block.y * block.z;
         Impl::configure_shmem_preference<DriverType, LaunchBounds>(
-            cuda_instance->m_cudaDev, base_t::get_kernel_func(),
-            cuda_instance->m_deviceProp, block_size, shmem, desired_occupancy);
+            base_t::get_kernel_func(), cuda_instance->m_deviceProp, block_size,
+            shmem, desired_occupancy);*/
+        Kokkos::Impl::throw_runtime_exception(
+        std::string("Cuda graph node creation FAILED:"
+                    " occupancy requests are currently broken."));
       }
 
       void const* args[] = {&driver};
@@ -402,20 +435,19 @@ struct CudaParallelLaunchKernelInvoker<
       params.kernelParams   = (void**)args;
       params.extra          = nullptr;
 
-      KOKKOS_IMPL_CUDA_SAFE_CALL(
-          (cuda_instance->cuda_graph_add_kernel_node_wrapper(
-              &graph_node, graph, /* dependencies = */ nullptr,
-              /* numDependencies = */ 0, &params)));
+      KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddKernelNode(
+          &graph_node, graph, /* dependencies = */ nullptr,
+          /* numDependencies = */ 0, &params));
     } else {
       // We still need an empty node for the dependency structure
       KOKKOS_IMPL_CUDA_SAFE_CALL(
-          (cuda_instance->cuda_graph_add_empty_node_wrapper(
-              &graph_node, graph,
-              /* dependencies = */ nullptr,
-              /* numDependencies = */ 0)));
+          cudaGraphAddEmptyNode(&graph_node, graph,
+                                /* dependencies = */ nullptr,
+                                /* numDependencies = */ 0));
     }
     KOKKOS_ENSURES(bool(graph_node))
   }
+#endif
 };
 
 // </editor-fold> end local memory }}}2
@@ -463,12 +495,14 @@ struct CudaParallelLaunchKernelInvoker<
     DriverType* driver_ptr = reinterpret_cast<DriverType*>(
         cuda_instance->scratch_functor(sizeof(DriverType)));
 
-    KOKKOS_IMPL_CUDA_SAFE_CALL((cuda_instance->cuda_memcpy_async_wrapper(
-        driver_ptr, &driver, sizeof(DriverType), cudaMemcpyDefault)));
-    (base_t::get_kernel_func())<<<grid, block, shmem,
-                                  cuda_instance->get_stream()>>>(driver_ptr);
+    cudaMemcpyAsync(driver_ptr, &driver, sizeof(DriverType), cudaMemcpyDefault,
+                    cuda_instance->m_stream);
+    (base_t::
+         get_kernel_func())<<<grid, block, shmem, cuda_instance->m_stream>>>(
+        driver_ptr);
   }
 
+#ifdef KOKKOS_CUDA_ENABLE_GRAPHS
   inline static void create_parallel_launch_graph_node(
       DriverType const& driver, dim3 const& grid, dim3 const& block, int shmem,
       CudaInternal const* cuda_instance) {
@@ -481,14 +515,17 @@ struct CudaParallelLaunchKernelInvoker<
 
     if (!Impl::is_empty_launch(grid, block)) {
       Impl::check_shmem_request(cuda_instance, shmem);
-      if constexpr (DriverType::Policy::
+      if (DriverType::Policy::
                         experimental_contains_desired_occupancy) {
-        int desired_occupancy =
+        /*int desired_occupancy =
             driver.get_policy().impl_get_desired_occupancy().value();
         size_t block_size = block.x * block.y * block.z;
         Impl::configure_shmem_preference<DriverType, LaunchBounds>(
-            cuda_instance->m_cudaDev, base_t::get_kernel_func(),
-            cuda_instance->m_deviceProp, block_size, shmem, desired_occupancy);
+            base_t::get_kernel_func(), cuda_instance->m_deviceProp, block_size,
+            shmem, desired_occupancy);*/
+        Kokkos::Impl::throw_runtime_exception(
+        std::string("Cuda graph node creation FAILED:"
+                    " occupancy requests are currently broken."));
       }
 
       auto* driver_ptr = Impl::allocate_driver_storage_for_kernel(driver);
@@ -498,8 +535,8 @@ struct CudaParallelLaunchKernelInvoker<
       // which is guaranteed to be alive until the graph instance itself is
       // destroyed, where there should be a fence ensuring that the allocation
       // associated with this kernel on the device side isn't deleted.
-      KOKKOS_IMPL_CUDA_SAFE_CALL((cuda_instance->cuda_memcpy_async_wrapper(
-          driver_ptr, &driver, sizeof(DriverType), cudaMemcpyDefault)));
+      cudaMemcpyAsync(driver_ptr, &driver, sizeof(DriverType),
+                      cudaMemcpyDefault, cuda_instance->m_stream);
 
       void const* args[] = {&driver_ptr};
 
@@ -512,20 +549,19 @@ struct CudaParallelLaunchKernelInvoker<
       params.kernelParams   = (void**)args;
       params.extra          = nullptr;
 
-      KOKKOS_IMPL_CUDA_SAFE_CALL(
-          (cuda_instance->cuda_graph_add_kernel_node_wrapper(
-              &graph_node, graph, /* dependencies = */ nullptr,
-              /* numDependencies = */ 0, &params)));
+      KOKKOS_IMPL_CUDA_SAFE_CALL(cudaGraphAddKernelNode(
+          &graph_node, graph, /* dependencies = */ nullptr,
+          /* numDependencies = */ 0, &params));
     } else {
       // We still need an empty node for the dependency structure
       KOKKOS_IMPL_CUDA_SAFE_CALL(
-          (cuda_instance->cuda_graph_add_empty_node_wrapper(
-              &graph_node, graph,
-              /* dependencies = */ nullptr,
-              /* numDependencies = */ 0)));
+          cudaGraphAddEmptyNode(&graph_node, graph,
+                                /* dependencies = */ nullptr,
+                                /* numDependencies = */ 0));
     }
     KOKKOS_ENSURES(bool(graph_node))
   }
+#endif
 };
 
 // </editor-fold> end Global Memory }}}2
@@ -576,33 +612,31 @@ struct CudaParallelLaunchKernelInvoker<
   static void invoke_kernel(DriverType const& driver, dim3 const& grid,
                             dim3 const& block, int shmem,
                             CudaInternal const* cuda_instance) {
-    int cuda_device = cuda_instance->m_cudaDev;
     // Wait until the previous kernel that uses the constant buffer is done
-    std::lock_guard<std::mutex> lock(
-        CudaInternal::constantMemMutexPerDevice[cuda_device]);
-    KOKKOS_IMPL_CUDA_SAFE_CALL((cuda_instance->cuda_event_synchronize_wrapper(
-        CudaInternal::constantMemReusablePerDevice[cuda_device])));
+    std::lock_guard<std::mutex> lock(CudaInternal::constantMemMutex);
+    KOKKOS_IMPL_CUDA_SAFE_CALL(
+        cudaEventSynchronize(CudaInternal::constantMemReusable));
 
     // Copy functor (synchronously) to staging buffer in pinned host memory
-    unsigned long* staging =
-        cuda_instance->constantMemHostStagingPerDevice[cuda_device];
+    unsigned long* staging = cuda_instance->constantMemHostStaging;
     memcpy(staging, &driver, sizeof(DriverType));
 
     // Copy functor asynchronously from there to constant memory on the device
-    KOKKOS_IMPL_CUDA_SAFE_CALL(
-        (cuda_instance->cuda_memcpy_to_symbol_async_wrapper(
-            kokkos_impl_cuda_constant_memory_buffer, staging,
-            sizeof(DriverType), 0, cudaMemcpyHostToDevice)));
+    cudaMemcpyToSymbolAsync(kokkos_impl_cuda_constant_memory_buffer, staging,
+                            sizeof(DriverType), 0, cudaMemcpyHostToDevice,
+                            cudaStream_t(cuda_instance->m_stream));
 
     // Invoke the driver function on the device
-    (base_t::get_kernel_func())<<<grid, block, shmem,
-                                  cuda_instance->get_stream()>>>();
+    (base_t::
+         get_kernel_func())<<<grid, block, shmem, cuda_instance->m_stream>>>();
 
     // Record an event that says when the constant buffer can be reused
-    KOKKOS_IMPL_CUDA_SAFE_CALL((cuda_instance->cuda_event_record_wrapper(
-        CudaInternal::constantMemReusablePerDevice[cuda_device])));
+    KOKKOS_IMPL_CUDA_SAFE_CALL(
+        cudaEventRecord(CudaInternal::constantMemReusable,
+                        cudaStream_t(cuda_instance->m_stream)));
   }
 
+#ifdef KOKKOS_CUDA_ENABLE_GRAPHS
   inline static void create_parallel_launch_graph_node(
       DriverType const& driver, dim3 const& grid, dim3 const& block, int shmem,
       CudaInternal const* cuda_instance) {
@@ -621,6 +655,7 @@ struct CudaParallelLaunchKernelInvoker<
     global_launch_impl_t::create_parallel_launch_graph_node(
         driver, grid, block, shmem, cuda_instance);
   }
+#endif
 };
 
 // </editor-fold> end Constant Memory }}}2
@@ -660,19 +695,22 @@ struct CudaParallelLaunchImpl<
 
       Impl::check_shmem_request(cuda_instance, shmem);
 
-      if constexpr (DriverType::Policy::
+      if (DriverType::Policy::
                         experimental_contains_desired_occupancy) {
-        int desired_occupancy =
+        /*int desired_occupancy =
             driver.get_policy().impl_get_desired_occupancy().value();
         size_t block_size = block.x * block.y * block.z;
         Impl::configure_shmem_preference<
             DriverType,
             Kokkos::LaunchBounds<MaxThreadsPerBlock, MinBlocksPerSM>>(
-            cuda_instance->m_cudaDev, base_t::get_kernel_func(),
-            cuda_instance->m_deviceProp, block_size, shmem, desired_occupancy);
+            base_t::get_kernel_func(), cuda_instance->m_deviceProp, block_size,
+            shmem, desired_occupancy);*/
+        Kokkos::Impl::throw_runtime_exception(
+        std::string("Cuda graph node creation FAILED:"
+                    " occupancy requests are currently broken."));
       }
 
-      desul::ensure_cuda_lock_arrays_on_device();
+      ensure_cuda_lock_arrays_on_device();
 
       // Invoke the driver function on the device
       base_t::invoke_kernel(driver, grid, block, shmem, cuda_instance);
@@ -685,10 +723,10 @@ struct CudaParallelLaunchImpl<
     }
   }
 
-  static cudaFuncAttributes get_cuda_func_attributes(int cuda_device) {
+  static cudaFuncAttributes get_cuda_func_attributes() {
     return get_cuda_kernel_func_attributes<
         DriverType, Kokkos::LaunchBounds<MaxThreadsPerBlock, MinBlocksPerSM>>(
-        cuda_device, base_t::get_kernel_func());
+        base_t::get_kernel_func());
   }
 };
 
@@ -701,7 +739,11 @@ struct CudaParallelLaunchImpl<
 template <class DriverType, class LaunchBounds = Kokkos::LaunchBounds<>,
           Experimental::CudaLaunchMechanism LaunchMechanism =
               DeduceCudaLaunchMechanism<DriverType>::launch_mechanism,
-          bool DoGraph = DriverType::Policy::is_graph_kernel::value>
+          bool DoGraph = DriverType::Policy::is_graph_kernel::value
+#ifndef KOKKOS_CUDA_ENABLE_GRAPHS
+                         && false
+#endif
+          >
 struct CudaParallelLaunch;
 
 // General launch mechanism
@@ -718,6 +760,7 @@ struct CudaParallelLaunch<DriverType, LaunchBounds, LaunchMechanism,
   }
 };
 
+#ifdef KOKKOS_CUDA_ENABLE_GRAPHS
 // Launch mechanism for creating graph nodes
 template <class DriverType, class LaunchBounds,
           Experimental::CudaLaunchMechanism LaunchMechanism>
@@ -731,6 +774,7 @@ struct CudaParallelLaunch<DriverType, LaunchBounds, LaunchMechanism,
     base_t::create_parallel_launch_graph_node((Args &&) args...);
   }
 };
+#endif
 
 // </editor-fold> end CudaParallelLaunch }}}1
 //==============================================================================

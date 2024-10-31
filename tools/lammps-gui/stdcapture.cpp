@@ -38,7 +38,7 @@
 StdCapture::StdCapture() : m_oldStdOut(0), m_capturing(false)
 {
     // make stdout unbuffered so that we don't need to flush the stream
-    setvbuf(stdout, nullptr, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
 
     m_pipe[READ]  = 0;
     m_pipe[WRITE] = 0;
@@ -77,7 +77,6 @@ bool StdCapture::EndCapture()
 
     int bytesRead;
     bool fd_blocked;
-    int maxwait = 100;
 
     do {
         bytesRead  = 0;
@@ -94,11 +93,9 @@ bool StdCapture::EndCapture()
             buf[bytesRead] = 0;
             m_captured += buf;
         } else if (bytesRead < 0) {
-            fd_blocked =
-                ((errno == EAGAIN) || (errno == EWOULDBLOCK) || (errno == EINTR)) && (maxwait > 0);
+            fd_blocked = ((errno == EAGAIN) || (errno == EWOULDBLOCK) || (errno == EINTR));
 
             if (fd_blocked) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            --maxwait;
         }
     } while (fd_blocked || (bytesRead == (bufSize - 1)));
     m_capturing = false;
@@ -107,7 +104,7 @@ bool StdCapture::EndCapture()
 
 std::string StdCapture::GetChunk()
 {
-    if (!m_capturing) return {};
+    if (!m_capturing) return std::string();
     int bytesRead = 0;
     buf[0]        = '\0';
 
@@ -121,7 +118,7 @@ std::string StdCapture::GetChunk()
     if (bytesRead > 0) {
         buf[bytesRead] = '\0';
     }
-    return {buf};
+    return std::string(buf);
 }
 
 std::string StdCapture::GetCapture()

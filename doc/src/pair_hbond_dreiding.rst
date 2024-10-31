@@ -18,27 +18,25 @@ Syntax
 
 .. code-block:: LAMMPS
 
-   pair_style style N inner_distance_cutoff outer_distance_cutoff angle_cutoff
+   pair_style style N inner_distance_cutoff outer_distance_cutoff angle_cutof
 
 * style = *hbond/dreiding/lj* or *hbond/dreiding/morse*
-* N = power of cosine of angle theta (integer)
+* n = cosine angle periodicity
 * inner_distance_cutoff = global inner cutoff for Donor-Acceptor interactions (distance units)
 * outer_distance_cutoff = global cutoff for Donor-Acceptor interactions (distance units)
-* angle_cutoff = global angle cutoff for Acceptor-Hydrogen-Donor interactions (degrees)
+* angle_cutoff = global angle cutoff for Acceptor-Hydrogen-Donor
+* interactions (degrees)
 
 Examples
 """"""""
 
 .. code-block:: LAMMPS
 
-   pair_style hybrid/overlay lj/cut 10.0 hbond/dreiding/lj 4 9.0 11.0 90.0
+   pair_style hybrid/overlay lj/cut 10.0 hbond/dreiding/lj 4 9.0 11.0 90
    pair_coeff 1 2 hbond/dreiding/lj 3 i 9.5 2.75 4 9.0 11.0 90.0
 
-   pair_style hybrid/overlay lj/cut 10.0 hbond/dreiding/morse 2 9.0 11.0 90.0
-   pair_coeff 1 2 hbond/dreiding/morse 3 i 3.88 1.7241379 2.9 2 9.0 11.0 90.0
-
-   labelmap atom 1 C 2 O 3 H
-   pair_coeff C O hbond/dreiding/morse H i 3.88 1.7241379 2.9 2 9.0 11.0 90.0
+   pair_style hybrid/overlay lj/cut 10.0 hbond/dreiding/morse 2 9.0 11.0 90
+   pair_coeff 1 2 hbond/dreiding/morse 3 i 3.88 1.7241379 2.9 2 9 11 90
 
 Description
 """""""""""
@@ -64,8 +62,7 @@ force field, given by:
 
 where :math:`r_{\rm in}` is the inner spline distance cutoff,
 :math:`r_{\rm out}` is the outer distance cutoff, :math:`\theta_c` is
-the angle cutoff, and :math:`n` is the power of the cosine of the angle
-:math:`\theta`.
+the angle cutoff, and *n* is the cosine periodicity.
 
 Here, *r* is the radial distance between the donor (D) and acceptor
 (A) atoms and :math:`\theta` is the bond angle between the acceptor, the
@@ -147,7 +144,7 @@ in the examples above.
 For the *hbond/dreiding/lj* style the list of coefficients is as
 follows:
 
-* K = hydrogen atom type = 1 to Ntypes, or type label
+* K = hydrogen atom type = 1 to Ntypes
 * donor flag = *i* or *j*
 * :math:`\epsilon` (energy units)
 * :math:`\sigma` (distance units)
@@ -159,7 +156,7 @@ follows:
 For the *hbond/dreiding/morse* style the list of coefficients is as
 follows:
 
-* K = hydrogen atom type = 1 to Ntypes, or type label
+* K = hydrogen atom type = 1 to Ntypes
 * donor flag = *i* or *j*
 * :math:`D_0` (energy units)
 * :math:`\alpha` (1/distance units)
@@ -217,8 +214,7 @@ These pair styles do not support the :doc:`pair_modify <pair_modify>`
 tail option for adding long-range tail corrections to energy and
 pressure.
 
-These pair styles do not write their information to :doc:`binary restart
-files <restart>`, so pair_style and pair_coeff commands need to be
+These pair styles do not write their information to :doc:`binary restart files <restart>`, so pair_style and pair_coeff commands need to be
 re-specified in an input script that reads a restart file.
 
 These pair styles can only be used via the *pair* keyword of the
@@ -244,10 +240,7 @@ heading) the following commands could be included in an input script:
 
 Restrictions
 """"""""""""
-
-This pair style can only be used if LAMMPS was built with the
-MOLECULE package.  See the :doc:`Build package <Build_package>` doc page
-for more info.
+ none
 
 Related commands
 """"""""""""""""

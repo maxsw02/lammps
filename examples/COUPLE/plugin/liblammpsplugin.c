@@ -41,6 +41,7 @@
 
 #include <stdlib.h>
 
+
 liblammpsplugin_t *liblammpsplugin_load(const char *lib)
 {
   liblammpsplugin_t *lmp;
@@ -81,7 +82,6 @@ liblammpsplugin_t *liblammpsplugin_load(const char *lib)
   ADDSYM(python_finalize);
 
   ADDSYM(error);
-  ADDSYM(expand);
 
   ADDSYM(file);
   ADDSYM(command);
@@ -101,12 +101,8 @@ liblammpsplugin_t *liblammpsplugin_load(const char *lib)
   ADDSYM(extract_setting);
   ADDSYM(extract_global_datatype);
   ADDSYM(extract_global);
-  ADDSYM(extract_pair_dimension);
-  ADDSYM(extract_pair);
-  ADDSYM(map_atom);
 
   ADDSYM(extract_atom_datatype);
-  ADDSYM(extract_atom_size);
   ADDSYM(extract_atom);
 
   ADDSYM(extract_compute);
@@ -114,9 +110,6 @@ liblammpsplugin_t *liblammpsplugin_load(const char *lib)
   ADDSYM(extract_variable);
   ADDSYM(extract_variable_datatype);
   ADDSYM(set_variable);
-  ADDSYM(set_string_variable);
-  ADDSYM(set_internal_variable);
-  ADDSYM(variable_info);
 
   ADDSYM(gather_atoms);
   ADDSYM(gather_atoms_concat);
@@ -151,7 +144,6 @@ liblammpsplugin_t *liblammpsplugin_load(const char *lib)
   ADDSYM(config_has_png_support);
   ADDSYM(config_has_jpeg_support);
   ADDSYM(config_has_ffmpeg_support);
-  ADDSYM(config_has_curl_support);
   ADDSYM(config_has_exceptions);
 
   ADDSYM(config_has_package);
@@ -191,9 +183,6 @@ liblammpsplugin_t *liblammpsplugin_load(const char *lib)
 
   ADDSYM(is_running);
   ADDSYM(force_timeout);
-
-  // symbol not present
-  if (!lmp->config_has_exceptions) return NULL;
 
   lmp->has_exceptions = lmp->config_has_exceptions();
   if (lmp->has_exceptions) {

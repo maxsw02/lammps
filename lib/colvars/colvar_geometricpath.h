@@ -8,13 +8,12 @@
 // Colvars repository at GitHub.
 
 
-#include <algorithm>
-#include <cmath>
-#include <string>
-#include <vector>
-
 #include "colvarmodule.h"
 
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <string>
 
 namespace GeometricPathCV {
 
@@ -172,14 +171,10 @@ void GeometricPathBase<element_type, scalar_type, path_type>::determineClosestFr
         sign = -1;
     }
     if (cvm::fabs(static_cast<long>(frame_index[0]) - static_cast<long>(frame_index[1])) > 1) {
-        std::string message(
-            "Warning: Geometrical pathCV relies on the assumption that the second closest frame is "
-            "the neighbouring frame\n"
-            "         Please check your configuration or increase restraint on z(σ)\n");
+        std::cout << "Warning: Geometrical pathCV relies on the assumption that the second closest frame is the neighbouring frame\n";
+        std::cout << "         Please check your configuration or increase restraint on z(σ)\n";
         for (size_t i_frame = 0; i_frame < frame_index.size(); ++i_frame) {
-            message += "Frame index: " + cvm::to_str(frame_index[i_frame]) +
-                       " ; optimal RMSD = " + cvm::to_str(frame_distances[frame_index[i_frame]]) +
-                       "\n";
+            std::cout << "Frame index: " << frame_index[i_frame] << " ; optimal RMSD = " << frame_distances[frame_index[i_frame]] << "\n";
         }
     }
     min_frame_index_1 = frame_index[0];                                                         // s_m

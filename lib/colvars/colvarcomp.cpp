@@ -19,40 +19,45 @@
 colvar::cvc::cvc()
 {
   description = "uninitialized colvar component";
+  b_try_scalable = true;
+  sup_coeff = 1.0;
+  sup_np = 1;
+  period = 0.0;
+  wrap_center = 0.0;
+  width = 0.0;
   cvc::init_dependencies();
 }
 
 
-int colvar::cvc::update_description()
+colvar::cvc::cvc(std::string const &conf)
 {
-  if (name.size() > 0) {
-    description = "cvc \"" + name + "\"";
-  } else {
-    description = "unnamed cvc";
-  }
-  description += " of type \"" + function_type() + "\"";
-  return COLVARS_OK;
-}
-
-
-std::string colvar::cvc::function_type() const
-{
-  if (function_types.empty()) {
-    return "unset";
-  }
-  return function_types.back();
+  description = "uninitialized colvar component";
+  b_try_scalable = true;
+  sup_coeff = 1.0;
+  sup_np = 1;
+  period = 0.0;
+  wrap_center = 0.0;
+  width = 0.0;
+  init_dependencies();
+  colvar::cvc::init(conf);
 }
 
 
 int colvar::cvc::set_function_type(std::string const &type)
 {
-  function_types.push_back(type);
-  update_description();
-  cvm::main()->cite_feature(function_types[0]+" colvar component");
+  function_type = type;
+  if (function_types.size() == 0) {
+    function_types.push_back(function_type);
+  } else {
+    if (function_types.back() != function_type) {
+      function_types.push_back(function_type);
+    }
+  }
   for (size_t i = function_types.size()-1; i > 0; i--) {
     cvm::main()->cite_feature(function_types[i]+" colvar component"+
                               " (derived from "+function_types[i-1]+")");
   }
+  cvm::main()->cite_feature(function_types[0]+" colvar component");
   return COLVARS_OK;
 }
 
@@ -62,8 +67,6 @@ int colvar::cvc::init(std::string const &conf)
   if (cvm::debug())
     cvm::log("Initializing cvc base object.\n");
 
-  int error_code = COLVARS_OK;
-
   std::string const old_name(name);
 
   if (name.size() > 0) {
@@ -71,14 +74,18 @@ int colvar::cvc::init(std::string const &conf)
   }
 
   if (get_keyval(conf, "name", name, name)) {
+    if (name.size() > 0) {
+      description = "cvc \"" + name + "\" of type " + function_type;
+    } else {
+      description = "unnamed cvc";
+    }
     if ((name != old_name) && (old_name.size() > 0)) {
-      error_code |= cvm::error("Error: cannot rename component \"" + old_name +
-                                   "\" after initialization (new name = \"" + name + "\")",
-                               COLVARS_INPUT_ERROR);
+      cvm::error("Error: cannot rename component \""+old_name+
+                 "\" after initialization (new name = \""+name+"\")",
+                 COLVARS_INPUT_ERROR);
       name = old_name;
     }
   }
-  update_description();
 
   get_keyval(conf, "componentCoeff", sup_coeff, sup_coeff);
   get_keyval(conf, "componentExp", sup_np, sup_np);
@@ -94,24 +101,6 @@ int colvar::cvc::init(std::string const &conf)
   // TODO when init() is called after all constructors, check periodic flag
   register_param("period", reinterpret_cast<void *>(&period));
   register_param("wrapAround", reinterpret_cast<void *>(&wrap_center));
-
-  if (period != 0.0) {
-    if (!is_available(f_cvc_periodic)) {
-      error_code |=
-          cvm::error("Error: invalid use of period and/or "
-                     "wrapAround in a \"" +
-                         function_type() + "\" component.\n" + "Period: " + cvm::to_str(period) +
-                         " wrapAround: " + cvm::to_str(wrap_center),
-                     COLVARS_INPUT_ERROR);
-    } else {
-      enable(f_cvc_periodic);
-    }
-  }
-
-  if ((wrap_center != 0.0) && !is_enabled(f_cvc_periodic)) {
-    error_code |= cvm::error("Error: wrapAround was defined for a non-periodic component.\n",
-                             COLVARS_INPUT_ERROR);
-  }
 
   get_keyval_feature(this, conf, "debugGradients",
                      f_cvc_debug_gradient, false, parse_silent);
@@ -130,7 +119,7 @@ int colvar::cvc::init(std::string const &conf)
   if (cvm::debug())
     cvm::log("Done initializing cvc base object.\n");
 
-  return error_code;
+  return cvm::get_error();
 }
 
 
@@ -168,13 +157,10 @@ cvm::atom_group *colvar::cvc::parse_group(std::string const &conf,
                                           char const *group_key,
                                           bool optional)
 {
-  int error_code = COLVARS_OK;
-
-  cvm::atom_group *group = nullptr;
+  cvm::atom_group *group = NULL;
   std::string group_conf;
 
   if (key_lookup(conf, group_key, &group_conf)) {
-
     group = new cvm::atom_group(group_key);
 
     if (b_try_scalable) {
@@ -191,41 +177,30 @@ cvm::atom_group *colvar::cvc::parse_group(std::string const &conf,
       // TODO check for other types of parallelism here
     }
 
-    if (group_conf.empty()) {
-      error_code |= cvm::error("Error: atom group \"" + group->key + "\" has no definition.\n",
-                               COLVARS_INPUT_ERROR);
-      delete group;
-      group = nullptr;
-      // Silence unused variable warning; TODO stop returning a pointer
-      (void) error_code;
+    if (group_conf.size() == 0) {
+      cvm::error("Error: atom group \""+group->key+
+                 "\" is set, but has no definition.\n",
+                 COLVARS_INPUT_ERROR);
       return group;
     }
 
     cvm::increase_depth();
-    error_code |= group->parse(group_conf);
-    if (error_code != COLVARS_OK) {
-      error_code |=
-          cvm::error("Error: in definition of atom group \"" + std::string(group_key) + "\".",
-                     COLVARS_INPUT_ERROR);
-      delete group;
-      group = nullptr;
-    } else {
+    if (group->parse(group_conf) == COLVARS_OK) {
       register_atom_group(group);
-      error_code |= group->check_keywords(group_conf, group_key);
+    }
+    group->check_keywords(group_conf, group_key);
+    if (cvm::get_error()) {
+      cvm::error("Error parsing definition for atom group \""+
+                 std::string(group_key)+"\".", COLVARS_INPUT_ERROR);
     }
     cvm::decrease_depth();
 
   } else {
-
-    if (!optional) {
-      error_code |=
-          cvm::error("Error: atom group \"" + std::string(group_key) + "\" is required.\n",
-                     COLVARS_INPUT_ERROR);
+    if (! optional) {
+      cvm::error("Error: definition for atom group \""+
+                 std::string(group_key)+"\" not found.\n");
     }
   }
-
-  // Silence unused variable warning; TODO stop returning a pointer
-  (void) error_code;
 
   return group;
 }
@@ -252,8 +227,6 @@ int colvar::cvc::init_dependencies() {
     init_feature(f_cvc_lower_boundary, "defined_lower_boundary", f_type_static);
 
     init_feature(f_cvc_upper_boundary, "defined_upper_boundary", f_type_static);
-
-    init_feature(f_cvc_explicit_atom_groups, "explicit_atom_groups", f_type_static);
 
     init_feature(f_cvc_gradient, "gradient", f_type_dynamic);
 
@@ -291,7 +264,6 @@ int colvar::cvc::init_dependencies() {
 
     init_feature(f_cvc_collect_atom_ids, "collect_atom_ids", f_type_dynamic);
     require_feature_children(f_cvc_collect_atom_ids, f_ag_collect_atom_ids);
-    require_feature_self(f_cvc_collect_atom_ids, f_cvc_explicit_atom_groups);
 
     // TODO only enable this when f_ag_scalable can be turned on for a pre-initialized group
     // require_feature_children(f_cvc_scalable, f_ag_scalable);
@@ -309,7 +281,7 @@ int colvar::cvc::init_dependencies() {
   // default as available, not enabled
   // except dynamic features which default as unavailable
   feature_states.reserve(f_cvc_ntot);
-  for (i = feature_states.size(); i < colvardeps::f_cvc_ntot; i++) {
+  for (i = 0; i < colvardeps::f_cvc_ntot; i++) {
     bool avail = is_dynamic(i) ? false : true;
     feature_states.push_back(feature_state(avail, false));
   }
@@ -319,8 +291,6 @@ int colvar::cvc::init_dependencies() {
   feature_states[f_cvc_active].available = true;
   feature_states[f_cvc_gradient].available = true;
   feature_states[f_cvc_collect_atom_ids].available = true;
-
-  feature_states[f_cvc_periodic].available = false;
 
   // CVCs are enabled from the start - get disabled based on flags
   enable(f_cvc_active);
@@ -344,7 +314,7 @@ int colvar::cvc::init_dependencies() {
 
 int colvar::cvc::setup()
 {
-  update_description();
+  description = "cvc " + name;
   return COLVARS_OK;
 }
 
@@ -379,7 +349,6 @@ void colvar::cvc::init_as_angle()
 void colvar::cvc::init_as_periodic_angle()
 {
   x.type(colvarvalue::type_scalar);
-  provide(f_cvc_periodic);
   enable(f_cvc_periodic);
   period = 360.0;
   init_scalar_boundaries(-180.0, 180.0);
@@ -403,7 +372,6 @@ void colvar::cvc::register_atom_group(cvm::atom_group *ag)
 {
   atom_groups.push_back(ag);
   add_child(ag);
-  enable(f_cvc_explicit_atom_groups);
 }
 
 
@@ -443,21 +411,29 @@ int colvar::cvc::set_param(std::string const &param_name,
 
 void colvar::cvc::read_data()
 {
-  if (is_enabled(f_cvc_explicit_atom_groups)) {
-    for (auto agi = atom_groups.begin(); agi != atom_groups.end(); agi++) {
-      cvm::atom_group &atoms = *(*agi);
-      atoms.reset_atoms_data();
-      atoms.read_positions();
-      atoms.calc_required_properties();
-      // each atom group will take care of its own fitting_group, if defined
-    }
+  size_t ig;
+  for (ig = 0; ig < atom_groups.size(); ig++) {
+    cvm::atom_group &atoms = *(atom_groups[ig]);
+    atoms.reset_atoms_data();
+    atoms.read_positions();
+    atoms.calc_required_properties();
+    // each atom group will take care of its own fitting_group, if defined
   }
+
+////  Don't try to get atom velocities, as no back-end currently implements it
+//   if (tasks[task_output_velocity] && !tasks[task_fdiff_velocity]) {
+//     for (i = 0; i < cvcs.size(); i++) {
+//       for (ig = 0; ig < cvcs[i]->atom_groups.size(); ig++) {
+//         cvcs[i]->atom_groups[ig]->read_velocities();
+//       }
+//     }
+//   }
 }
 
 
-std::vector<std::vector<int>> colvar::cvc::get_atom_lists()
+std::vector<std::vector<int> > colvar::cvc::get_atom_lists()
 {
-  std::vector<std::vector<int>> lists;
+  std::vector<std::vector<int> > lists;
 
   std::vector<cvm::atom_group *>::iterator agi = atom_groups.begin();
   for ( ; agi != atom_groups.end(); ++agi) {
@@ -486,12 +462,12 @@ void colvar::cvc::collect_gradients(std::vector<int> const &atom_ids, std::vecto
     // If necessary, apply inverse rotation to get atomic
     // gradient in the laboratory frame
     if (ag.is_enabled(f_ag_rotate)) {
-      const auto rot_inv = ag.rot.inverse().matrix();
+      cvm::rotation const rot_inv = ag.rot.inverse();
 
       for (size_t k = 0; k < ag.size(); k++) {
         size_t a = std::lower_bound(atom_ids.begin(), atom_ids.end(),
                                     ag[k].id) - atom_ids.begin();
-        atomic_gradients[a] += coeff * (rot_inv * ag[k].grad);
+        atomic_gradients[a] += coeff * rot_inv.rotate(ag[k].grad);
       }
 
     } else {
@@ -518,7 +494,7 @@ void colvar::cvc::collect_gradients(std::vector<int> const &atom_ids, std::vecto
 void colvar::cvc::calc_force_invgrads()
 {
   cvm::error("Error: calculation of inverse gradients is not implemented "
-             "for colvar components of type \""+function_type()+"\".\n",
+             "for colvar components of type \""+function_type+"\".\n",
              COLVARS_NOT_IMPLEMENTED);
 }
 
@@ -526,7 +502,7 @@ void colvar::cvc::calc_force_invgrads()
 void colvar::cvc::calc_Jacobian_derivative()
 {
   cvm::error("Error: calculation of inverse gradients is not implemented "
-             "for colvar components of type \""+function_type()+"\".\n",
+             "for colvar components of type \""+function_type+"\".\n",
              COLVARS_NOT_IMPLEMENTED);
 }
 
@@ -535,18 +511,6 @@ void colvar::cvc::calc_fit_gradients()
 {
   for (size_t ig = 0; ig < atom_groups.size(); ig++) {
     atom_groups[ig]->calc_fit_gradients();
-  }
-}
-
-
-void colvar::cvc::apply_force(colvarvalue const &cvforce)
-{
-  if (is_enabled(f_cvc_explicit_atom_groups)) {
-    for (auto agi = atom_groups.begin(); agi != atom_groups.end(); agi++) {
-      if (!(*agi)->noforce) {
-        (*agi)->apply_colvar_force(cvforce);
-      }
-    }
   }
 }
 
@@ -564,8 +528,8 @@ void colvar::cvc::debug_gradients()
     cvm::atom_group *group = atom_groups[ig];
     if (group->b_dummy) continue;
 
-    const auto rot_0 = group->rot.matrix();
-    const auto rot_inv = group->rot.inverse().matrix();
+    cvm::rotation const rot_0 = group->rot;
+    cvm::rotation const rot_inv = group->rot.inverse();
 
     cvm::real x_0 = x.real_value;
     if ((x.type() == colvarvalue::type_vector) && (x.size() == 1)) x_0 = x[0];
@@ -586,7 +550,7 @@ void colvar::cvc::debug_gradients()
           cvm::log((group->fitting_group ? std::string("refPosGroup") : group->key) +
                   "[" + cvm::to_str(j) + "] = " +
                   (group->is_enabled(f_ag_rotate) ?
-                    cvm::to_str(rot_0 * (group_for_fit->fit_gradients[j])) :
+                    cvm::to_str(rot_0.rotate(group_for_fit->fit_gradients[j])) :
                     cvm::to_str(group_for_fit->fit_gradients[j])));
         }
       }
@@ -597,7 +561,7 @@ void colvar::cvc::debug_gradients()
 
       // tests are best conducted in the unrotated (simulation) frame
       cvm::rvector const atom_grad = (group->is_enabled(f_ag_rotate) ?
-                                      rot_inv * ((*group)[ia].grad) :
+                                      rot_inv.rotate((*group)[ia].grad) :
                                       (*group)[ia].grad);
       gradient_sum += atom_grad;
 
@@ -670,41 +634,32 @@ void colvar::cvc::debug_gradients()
 }
 
 
-cvm::real colvar::cvc::dist2(colvarvalue const &x1, colvarvalue const &x2) const
+cvm::real colvar::cvc::dist2(colvarvalue const &x1,
+                             colvarvalue const &x2) const
 {
-  cvm::real diff = x1.real_value - x2.real_value;
-  if (is_enabled(f_cvc_periodic)) {
-    cvm::real const shift = cvm::floor(diff / period + 0.5);
-    diff -= shift * period;
-  }
-  return diff * diff;
+  return x1.dist2(x2);
 }
 
 
-colvarvalue colvar::cvc::dist2_lgrad(colvarvalue const &x1, colvarvalue const &x2) const
+colvarvalue colvar::cvc::dist2_lgrad(colvarvalue const &x1,
+                                     colvarvalue const &x2) const
 {
-  cvm::real diff = x1.real_value - x2.real_value;
-  if (is_enabled(f_cvc_periodic)) {
-    cvm::real const shift = cvm::floor(diff / period + 0.5);
-    diff -= shift * period;
-  }
-  return 2.0 * diff;
+  return x1.dist2_grad(x2);
 }
 
 
-colvarvalue colvar::cvc::dist2_rgrad(colvarvalue const &x1, colvarvalue const &x2) const
+colvarvalue colvar::cvc::dist2_rgrad(colvarvalue const &x1,
+                                     colvarvalue const &x2) const
 {
-  return cvc::dist2_lgrad(x1, x2);
+  return x2.dist2_grad(x1);
 }
 
 
-void colvar::cvc::wrap(colvarvalue &x_unwrapped) const
+void colvar::cvc::wrap(colvarvalue & /* x_unwrapped */) const
 {
-  if (is_enabled(f_cvc_periodic)) {
-    cvm::real const shift = cvm::floor((x_unwrapped.real_value - wrap_center) / period + 0.5);
-    x_unwrapped.real_value -= shift * period;
-  }
+  return;
 }
+
 
 
 // Static members

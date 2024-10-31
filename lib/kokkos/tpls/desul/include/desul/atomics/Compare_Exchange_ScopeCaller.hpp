@@ -8,13 +8,15 @@ SPDX-License-Identifier: (BSD-3-Clause)
 
 #ifndef DESUL_ATOMICS_COMPARE_EXCHANGE_SCOPECALLER_HPP_
 #define DESUL_ATOMICS_COMPARE_EXCHANGE_SCOPECALLER_HPP_
-
-#include <desul/atomics/Common.hpp>
+#include "desul/atomics/Common.hpp"
 
 namespace desul {
 
+template <class MemoryOrder>
+DESUL_INLINE_FUNCTION void atomic_thread_fence(MemoryOrder, MemoryScopeCaller) {}
+
 #define DESUL_ATOMIC_EXCHANGE_SCOPECALLER(MEMORY_ORDER)               \
-  template <class T>                                                  \
+  template <typename T>                                               \
   DESUL_INLINE_FUNCTION T atomic_exchange(                            \
       T* dest, T value, MEMORY_ORDER, MemoryScopeCaller) {            \
     T return_val = *dest;                                             \
@@ -22,7 +24,7 @@ namespace desul {
     return return_val;                                                \
   }                                                                   \
                                                                       \
-  template <class T>                                                  \
+  template <typename T>                                               \
   DESUL_INLINE_FUNCTION T atomic_compare_exchange(                    \
       T* dest, T compare, T value, MEMORY_ORDER, MemoryScopeCaller) { \
     T current_val = *dest;                                            \
@@ -37,7 +39,5 @@ DESUL_ATOMIC_EXCHANGE_SCOPECALLER(MemoryOrderAcquire)
 DESUL_ATOMIC_EXCHANGE_SCOPECALLER(MemoryOrderRelaxed)
 
 #undef DESUL_ATOMIC_EXCHANGE_SCOPECALLER
-
 }  // namespace desul
-
 #endif

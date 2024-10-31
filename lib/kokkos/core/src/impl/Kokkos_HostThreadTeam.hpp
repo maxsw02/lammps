@@ -1,18 +1,46 @@
+/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 4.0
-//       Copyright (2022) National Technology & Engineering
+//                        Kokkos v. 3.0
+//       Copyright (2020) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
-// See https://kokkos.org/LICENSE for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
 //
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// 3. Neither the name of the Corporation nor the names of the
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+//
+// ************************************************************************
 //@HEADER
+*/
 
 #ifndef KOKKOS_IMPL_HOSTTHREADTEAM_HPP
 #define KOKKOS_IMPL_HOSTTHREADTEAM_HPP
@@ -106,11 +134,7 @@ class HostThreadTeamData {
 
  public:
   inline bool team_rendezvous() const noexcept {
-    // FIXME_OPENMP The tasking framework creates an instance with
-    // m_team_scratch == nullptr and m_team_rendezvous != 0:
-    int* ptr = m_team_scratch == nullptr
-                   ? nullptr
-                   : reinterpret_cast<int*>(m_team_scratch + m_team_rendezvous);
+    int* ptr = reinterpret_cast<int*>(m_team_scratch + m_team_rendezvous);
     HostBarrier::split_arrive(ptr, m_team_size, m_team_rendezvous_step);
     if (m_team_rank != 0) {
       HostBarrier::wait(ptr, m_team_size, m_team_rendezvous_step);
@@ -134,13 +158,9 @@ class HostThreadTeamData {
   }
 
   inline void team_rendezvous_release() const noexcept {
-    // FIXME_OPENMP The tasking framework creates an instance with
-    // m_team_scratch == nullptr and m_team_rendezvous != 0:
     HostBarrier::split_release(
-        (m_team_scratch == nullptr)
-            ? nullptr
-            : reinterpret_cast<int*>(m_team_scratch + m_team_rendezvous),
-        m_team_size, m_team_rendezvous_step);
+        reinterpret_cast<int*>(m_team_scratch + m_team_rendezvous), m_team_size,
+        m_team_rendezvous_step);
   }
 
   inline int pool_rendezvous() const noexcept {
@@ -163,7 +183,8 @@ class HostThreadTeamData {
 
   //----------------------------------------
 
-#if !defined(KOKKOS_COMPILER_NVHPC) || (KOKKOS_COMPILER_NVHPC >= 230700)
+#ifndef KOKKOS_COMPILER_NVHPC  // FIXME_NVHPC bug in NVHPC regarding constexpr
+                               // constructors used in device code
   constexpr
 #endif
       HostThreadTeamData() noexcept
@@ -279,9 +300,6 @@ class HostThreadTeamData {
   }
 
   int64_t* team_shared() const noexcept {
-    // FIXME_OPENMP The tasking framework creates an instance with
-    // m_team_scratch == nullptr and m_team_shared != 0
-    if (m_team_scratch == nullptr) return nullptr;
     return m_team_scratch + m_team_shared;
   }
 
@@ -402,7 +420,6 @@ class HostThreadTeamMember {
   using execution_space         = HostExecSpace;
   using thread_team_member      = HostThreadTeamMember;
   using host_thread_team_member = HostThreadTeamMember;
-  using team_handle             = HostThreadTeamMember;
 
  private:
   scratch_memory_space m_scratch;
@@ -411,12 +428,8 @@ class HostThreadTeamMember {
   int const m_league_size;
 
  public:
-  // FIXME_OPENMP The tasking framework creates an instance with
-  // m_team_scratch == nullptr and m_team_shared != 0:
   constexpr HostThreadTeamMember(HostThreadTeamData& arg_data) noexcept
-      : m_scratch(arg_data.team_shared(), (arg_data.team_shared() == nullptr)
-                                              ? 0
-                                              : arg_data.team_shared_bytes()),
+      : m_scratch(arg_data.team_shared(), arg_data.team_shared_bytes()),
         m_data(arg_data),
         m_league_rank(arg_data.m_league_rank),
         m_league_size(arg_data.m_league_size) {}
@@ -485,7 +498,7 @@ class HostThreadTeamMember {
                                              const int source_team_rank) const
       noexcept {
     KOKKOS_IF_ON_HOST((if (1 < m_data.m_team_size) {
-      T* const shared_value = (T*)m_data.team_reduce();
+      T volatile* const shared_value = (T*)m_data.team_reduce();
 
       // Don't overwrite shared memory until all threads arrive
 
@@ -494,15 +507,13 @@ class HostThreadTeamMember {
         // only this thread returned from 'team_rendezvous'
         // with a return value of 'true'
 
-        Kokkos::Impl::atomic_store(shared_value, value,
-                                   desul::MemoryOrderRelease());
+        *shared_value = value;
 
         m_data.team_rendezvous_release();
         // This thread released all other threads from 'team_rendezvous'
         // with a return value of 'false'
       } else {
-        value = Kokkos::Impl::atomic_load(shared_value,
-                                          desul::MemoryOrderAcquire());
+        value = *shared_value;
       }
     }))
 
@@ -517,7 +528,7 @@ class HostThreadTeamMember {
                                              const int source_team_rank) const
       noexcept {
     KOKKOS_IF_ON_HOST((
-        T* const shared_value = (T*)m_data.team_reduce();
+        T volatile* const shared_value = (T*)m_data.team_reduce();
 
         // Don't overwrite shared memory until all threads arrive
 
@@ -529,17 +540,13 @@ class HostThreadTeamMember {
           f(value);
 
           if (1 < m_data.m_team_size) {
-            Kokkos::Impl::atomic_store(shared_value, value,
-                                       desul::MemoryOrderRelease());
+            *shared_value = value;
           }
 
           m_data.team_rendezvous_release();
           // This thread released all other threads from 'team_rendezvous'
           // with a return value of 'false'
-        } else {
-          value = Kokkos::Impl::atomic_load(shared_value,
-                                            desul::MemoryOrderAcquire());
-        }))
+        } else { value = *shared_value; }))
 
     KOKKOS_IF_ON_DEVICE(
         ((void)f; (void)value; (void)source_team_rank;
@@ -878,43 +885,6 @@ KOKKOS_INLINE_FUNCTION
 
 //----------------------------------------------------------------------------
 
-template <typename iType, class Closure, class Member, typename ValueType>
-KOKKOS_INLINE_FUNCTION
-    std::enable_if_t<!Kokkos::is_reducer<ValueType>::value &&
-                     Impl::is_host_thread_team_member<Member>::value>
-    parallel_scan(Impl::TeamThreadRangeBoundariesStruct<iType, Member> const&
-                      loop_boundaries,
-                  Closure const& closure, ValueType& return_val) {
-  // Extract ValueType from the Closure
-  using ClosureValueType = typename Kokkos::Impl::FunctorAnalysis<
-      Kokkos::Impl::FunctorPatternInterface::SCAN, void, Closure,
-      void>::value_type;
-  static_assert(std::is_same<ClosureValueType, ValueType>::value,
-                "Non-matching value types of closure and return type");
-
-  ValueType accum = ValueType();
-
-  // Intra-member scan
-  for (iType i = loop_boundaries.start; i < loop_boundaries.end;
-       i += loop_boundaries.increment) {
-    closure(i, accum, false);
-  }
-
-  auto& team_member = loop_boundaries.thread;
-
-  // 'accum' output is the exclusive prefix sum
-  accum = team_member.team_scan(accum);
-
-  for (iType i = loop_boundaries.start; i < loop_boundaries.end;
-       i += loop_boundaries.increment) {
-    closure(i, accum, true);
-  }
-
-  team_member.team_broadcast(accum, team_member.team_size() - 1);
-
-  return_val = accum;
-}
-
 template <typename iType, class Closure, class Member>
 KOKKOS_INLINE_FUNCTION
     std::enable_if_t<Impl::is_host_thread_team_member<Member>::value>
@@ -922,39 +892,25 @@ KOKKOS_INLINE_FUNCTION
                       loop_boundaries,
                   Closure const& closure) {
   // Extract ValueType from the closure
-  using ValueType = typename Kokkos::Impl::FunctorAnalysis<
-      Kokkos::Impl::FunctorPatternInterface::SCAN, void, Closure,
-      void>::value_type;
 
-  ValueType scan_val;
-  parallel_scan(loop_boundaries, closure, scan_val);
-}
+  using value_type = typename Kokkos::Impl::FunctorAnalysis<
+      Kokkos::Impl::FunctorPatternInterface::SCAN, void, Closure>::value_type;
 
-template <typename iType, class ClosureType, class Member, typename ValueType>
-KOKKOS_INLINE_FUNCTION
-    std::enable_if_t<!Kokkos::is_reducer<ValueType>::value &&
-                     Impl::is_host_thread_team_member<Member>::value>
-    parallel_scan(Impl::ThreadVectorRangeBoundariesStruct<iType, Member> const&
-                      loop_boundaries,
-                  ClosureType const& closure, ValueType& return_val) {
-  // Extract ValueType from the Closure
-  using ClosureValueType = typename Kokkos::Impl::FunctorAnalysis<
-      Kokkos::Impl::FunctorPatternInterface::SCAN, void, ClosureType,
-      void>::value_type;
-  static_assert(std::is_same<ClosureValueType, ValueType>::value,
-                "Non-matching value types of closure and return type");
+  value_type accum = 0;
 
-  ValueType scan_val = ValueType();
-
-#ifdef KOKKOS_ENABLE_PRAGMA_IVDEP
-#pragma ivdep
-#endif
+  // Intra-member scan
   for (iType i = loop_boundaries.start; i < loop_boundaries.end;
        i += loop_boundaries.increment) {
-    closure(i, scan_val, true);
+    closure(i, accum, false);
   }
 
-  return_val = scan_val;
+  // 'accum' output is the exclusive prefix sum
+  accum = loop_boundaries.thread.team_scan(accum);
+
+  for (iType i = loop_boundaries.start; i < loop_boundaries.end;
+       i += loop_boundaries.increment) {
+    closure(i, accum, true);
+  }
 }
 
 template <typename iType, class ClosureType, class Member>
@@ -963,12 +919,18 @@ KOKKOS_INLINE_FUNCTION
     parallel_scan(Impl::ThreadVectorRangeBoundariesStruct<iType, Member> const&
                       loop_boundaries,
                   ClosureType const& closure) {
-  // Extract ValueType from the closure
-  using ValueType = typename Kokkos::Impl::FunctorAnalysis<
-      Impl::FunctorPatternInterface::SCAN, void, ClosureType, void>::value_type;
+  using value_type = typename Kokkos::Impl::FunctorAnalysis<
+      Impl::FunctorPatternInterface::SCAN, void, ClosureType>::value_type;
 
-  ValueType scan_val;
-  parallel_scan(loop_boundaries, closure, scan_val);
+  value_type scan_val = value_type();
+
+#ifdef KOKKOS_ENABLE_PRAGMA_IVDEP
+#pragma ivdep
+#endif
+  for (iType i = loop_boundaries.start; i < loop_boundaries.end;
+       i += loop_boundaries.increment) {
+    closure(i, scan_val, true);
+  }
 }
 
 template <typename iType, class Lambda, typename ReducerType, typename Member>

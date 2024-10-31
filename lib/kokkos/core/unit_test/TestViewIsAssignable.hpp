@@ -1,19 +1,3 @@
-//@HEADER
-// ************************************************************************
-//
-//                        Kokkos v. 4.0
-//       Copyright (2022) National Technology & Engineering
-//               Solutions of Sandia, LLC (NTESS).
-//
-// Under the terms of Contract DE-NA0003525 with NTESS,
-// the U.S. Government retains certain rights in this software.
-//
-// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
-// See https://kokkos.org/LICENSE for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//@HEADER
-
 #include <Kokkos_Core.hpp>
 
 namespace Test {
@@ -144,6 +128,7 @@ TEST(TEST_CATEGORY, view_is_assignable) {
 
   // reference type and const-qualified types
   using SomeViewType = View<int*, left, d_exec>;
+#if defined(KOKKOS_ENABLE_CXX17)
   static_assert(is_always_assignable_v<SomeViewType, SomeViewType>);
   static_assert(is_always_assignable_v<SomeViewType, SomeViewType&>);
   static_assert(is_always_assignable_v<SomeViewType, SomeViewType const>);
@@ -152,5 +137,19 @@ TEST(TEST_CATEGORY, view_is_assignable) {
   static_assert(is_always_assignable_v<SomeViewType&, SomeViewType&>);
   static_assert(is_always_assignable_v<SomeViewType&, SomeViewType const>);
   static_assert(is_always_assignable_v<SomeViewType&, SomeViewType const&>);
+#else
+  static_assert(is_always_assignable<SomeViewType, SomeViewType>::value, "");
+  static_assert(is_always_assignable<SomeViewType, SomeViewType&>::value, "");
+  static_assert(is_always_assignable<SomeViewType, SomeViewType const>::value,
+                "");
+  static_assert(is_always_assignable<SomeViewType, SomeViewType const&>::value,
+                "");
+  static_assert(is_always_assignable<SomeViewType&, SomeViewType>::value, "");
+  static_assert(is_always_assignable<SomeViewType&, SomeViewType&>::value, "");
+  static_assert(is_always_assignable<SomeViewType&, SomeViewType const>::value,
+                "");
+  static_assert(is_always_assignable<SomeViewType&, SomeViewType const&>::value,
+                "");
+#endif
 }
 }  // namespace Test

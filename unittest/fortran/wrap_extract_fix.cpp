@@ -51,7 +51,7 @@ protected:
 TEST_F(LAMMPS_extract_fix, global_scalar)
 {
     f_lammps_setup_extract_fix();
-    auto *scalar =
+    double *scalar =
         (double *)lammps_extract_fix(lmp, "recenter", LMP_STYLE_GLOBAL, LMP_TYPE_SCALAR, -1, -1);
     EXPECT_DOUBLE_EQ(f_lammps_extract_fix_global_scalar(), *scalar);
     lammps_free(scalar);
@@ -60,11 +60,11 @@ TEST_F(LAMMPS_extract_fix, global_scalar)
 TEST_F(LAMMPS_extract_fix, global_vector)
 {
     f_lammps_setup_extract_fix();
-    auto *x =
+    double *x =
         (double *)lammps_extract_fix(lmp, "recenter", LMP_STYLE_GLOBAL, LMP_TYPE_VECTOR, 0, -1);
-    auto *y =
+    double *y =
         (double *)lammps_extract_fix(lmp, "recenter", LMP_STYLE_GLOBAL, LMP_TYPE_VECTOR, 1, -1);
-    auto *z =
+    double *z =
         (double *)lammps_extract_fix(lmp, "recenter", LMP_STYLE_GLOBAL, LMP_TYPE_VECTOR, 2, -1);
     EXPECT_DOUBLE_EQ(f_lammps_extract_fix_global_vector(1), *x);
     EXPECT_DOUBLE_EQ(f_lammps_extract_fix_global_vector(2), *y);

@@ -39,8 +39,7 @@ name of the initial log file can also be set by the :doc:`-log command-line swit
 
 Restrictions
 """"""""""""
-
-none
+ none
 
 Related commands
 """"""""""""""""

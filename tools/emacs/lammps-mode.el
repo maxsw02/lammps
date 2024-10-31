@@ -56,8 +56,7 @@
   "LAMMPS output.")
 
 (defvar lammps-read
-  '("geturl"
-    "include"
+  '("include"
     "read"
     "read_restart"
     "read_data")

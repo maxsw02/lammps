@@ -1,13 +1,12 @@
 .. index:: pair_style brownian
 .. index:: pair_style brownian/omp
-.. index:: pair_style brownian/kk
 .. index:: pair_style brownian/poly
 .. index:: pair_style brownian/poly/omp
 
 pair_style brownian command
 ===========================
 
-Accelerator Variants: *brownian/omp*, *brownian/kk*
+Accelerator Variants: *brownian/omp*
 
 pair_style brownian/poly command
 ================================
@@ -49,13 +48,11 @@ torques on finite-size spherical particles.  The former requires
 monodisperse spherical particles; the latter allows for polydisperse
 spherical particles.
 
-These pair styles are designed to be used with either the
-:doc:`pair_style lubricate <pair_lubricate>` or :doc:`pair_style
-lubricateU <pair_lubricateU>` commands to provide thermostatting when
-dissipative lubrication forces are acting.  Thus the parameters *mu*,
-*flaglog*, *flagfld*, *cutinner*, and *cutoff* should be specified
-consistent with the settings in the lubrication pair styles.  For
-details, refer to either of the lubrication pair styles.
+These pair styles are designed to be used with either the :doc:`pair_style lubricate <pair_lubricate>` or :doc:`pair_style lubricateU <pair_lubricateU>` commands to provide thermostatting
+when dissipative lubrication forces are acting.  Thus the parameters
+*mu*, *flaglog*, *flagfld*, *cutinner*, and *cutoff* should be
+specified consistent with the settings in the lubrication pair styles.
+For details, refer to either of the lubrication pair styles.
 
 The *t_target* setting is used to specify the target temperature of
 the system.  The random number *seed* is used to generate random
@@ -88,26 +85,25 @@ must be specified.
 Mixing, shift, table, tail correction, restart, rRESPA info
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-For atom type pairs I,J and I != J, the two cutoff distances for these
-pair styles can be mixed.  The default mix value is *geometric*\ .  See
+For atom type pairs I,J and I != J, the two cutoff distances for this
+pair style can be mixed.  The default mix value is *geometric*\ .  See
 the "pair_modify" command for details.
 
-These pair styles do not support the :doc:`pair_modify <pair_modify>`
+This pair style does not support the :doc:`pair_modify <pair_modify>`
 shift option for the energy of the pair interaction.
 
 The :doc:`pair_modify <pair_modify>` table option is not relevant
-for these pair styles.
+for this pair style.
 
-These pair styles do not support the :doc:`pair_modify <pair_modify>`
+This pair style does not support the :doc:`pair_modify <pair_modify>`
 tail option for adding long-range tail corrections to energy and
 pressure.
 
-These pair styles write their information to :doc:`binary restart files
-<restart>`, so pair_style and pair_coeff commands do not need to be
-specified in an input script that reads a restart file.
+This pair style writes its information to :doc:`binary restart files <restart>`, so pair_style and pair_coeff commands do not need
+to be specified in an input script that reads a restart file.
 
-These pair styles can only be used via the *pair* keyword of the
-:doc:`run_style respa <run_style>` command.  They do not support the
+This pair style can only be used via the *pair* keyword of the
+:doc:`run_style respa <run_style>` command.  It does not support the
 *inner*, *middle*, *outer* keywords.
 
 ----------
@@ -115,20 +111,13 @@ These pair styles can only be used via the *pair* keyword of the
 Restrictions
 """"""""""""
 
-These styles are part of the COLLOID package.  They are only enabled if
-LAMMPS was built with that package.  See the :doc:`Build package
-<Build_package>` page for more info.
+These styles are part of the COLLOID package.  They are only enabled
+if LAMMPS was built with that package.  See the :doc:`Build package <Build_package>` page for more info.
 
 Only spherical monodisperse particles are allowed for pair_style
 brownian.
 
 Only spherical particles are allowed for pair_style brownian/poly.
-
-These pair styles are only compatible with the following wall fixes:
-doc:`fix wall/lj93, fix wall/lj126, fix wall/lj1043, fix wall/colloid,
-fix wall/harmonic, fix wall/lepton, fix wall/morse, fix wall/table
-<fix_wall>`.
-
 
 Related commands
 """"""""""""""""

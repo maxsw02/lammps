@@ -31,11 +31,10 @@ TEST_F(DumpCustomCompressTest, compressed_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name = "custom_run1.melt";
-    auto text_file        = text_dump_filename(base_name);
-    auto compressed_file  = compressed_dump_filename(base_name);
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name       = "custom_run1.melt";
+    auto text_file       = text_dump_filename(base_name);
+    auto compressed_file = compressed_dump_filename(base_name);
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
 
     if (compression_style == "custom/zstd") {
         generate_text_and_compressed_dump(text_file, compressed_file, fields, fields, "units yes",
@@ -62,11 +61,10 @@ TEST_F(DumpCustomCompressTest, compressed_with_time_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name = "with_time_custom_run1.melt";
-    auto text_file        = text_dump_filename(base_name);
-    auto compressed_file  = compressed_dump_filename(base_name);
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name       = "with_time_custom_run1.melt";
+    auto text_file       = text_dump_filename(base_name);
+    auto compressed_file = compressed_dump_filename(base_name);
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
 
     if (compression_style == "custom/zstd") {
         generate_text_and_compressed_dump(text_file, compressed_file, fields, fields, "time yes",
@@ -93,11 +91,10 @@ TEST_F(DumpCustomCompressTest, compressed_no_buffer_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name = "no_buffer_custom_run1.melt";
-    auto text_file        = text_dump_filename(base_name);
-    auto compressed_file  = compressed_dump_filename(base_name);
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name       = "no_buffer_custom_run1.melt";
+    auto text_file       = text_dump_filename(base_name);
+    auto compressed_file = compressed_dump_filename(base_name);
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
 
     if (compression_style == "custom/zstd") {
         generate_text_and_compressed_dump(text_file, compressed_file, fields, fields, "buffer no",
@@ -124,10 +121,10 @@ TEST_F(DumpCustomCompressTest, compressed_triclinic_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name = "custom_tri_run1.melt";
-    auto text_file        = text_dump_filename(base_name);
-    auto compressed_file  = compressed_dump_filename(base_name);
-    const auto *fields    = "id type proc x y z xs ys zs xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name       = "custom_tri_run1.melt";
+    auto text_file       = text_dump_filename(base_name);
+    auto compressed_file = compressed_dump_filename(base_name);
+    auto fields          = "id type proc x y z xs ys zs xsu ysu zsu vx vy vz fx fy fz";
 
     enable_triclinic();
 
@@ -151,17 +148,16 @@ TEST_F(DumpCustomCompressTest, compressed_multi_file_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name   = "multi_file_run1_*.melt.custom";
-    const auto *base_name_0 = "multi_file_run1_0.melt.custom";
-    const auto *base_name_1 = "multi_file_run1_1.melt.custom";
-    auto text_file          = text_dump_filename(base_name);
-    auto text_file_0        = text_dump_filename(base_name_0);
-    auto text_file_1        = text_dump_filename(base_name_1);
-    auto compressed_file    = compressed_dump_filename(base_name);
-    auto compressed_file_0  = compressed_dump_filename(base_name_0);
-    auto compressed_file_1  = compressed_dump_filename(base_name_1);
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name         = "multi_file_run1_*.melt.custom";
+    auto base_name_0       = "multi_file_run1_0.melt.custom";
+    auto base_name_1       = "multi_file_run1_1.melt.custom";
+    auto text_file         = text_dump_filename(base_name);
+    auto text_file_0       = text_dump_filename(base_name_0);
+    auto text_file_1       = text_dump_filename(base_name_1);
+    auto compressed_file   = compressed_dump_filename(base_name);
+    auto compressed_file_0 = compressed_dump_filename(base_name_0);
+    auto compressed_file_1 = compressed_dump_filename(base_name_1);
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
 
     if (compression_style == "custom/zstd") {
         generate_text_and_compressed_dump(text_file, compressed_file, fields, fields, "",
@@ -194,17 +190,16 @@ TEST_F(DumpCustomCompressTest, compressed_multi_file_with_pad_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name   = "multi_file_pad_run1_*.melt.custom";
-    const auto *base_name_0 = "multi_file_pad_run1_000.melt.custom";
-    const auto *base_name_1 = "multi_file_pad_run1_001.melt.custom";
-    auto text_file          = text_dump_filename(base_name);
-    auto text_file_0        = text_dump_filename(base_name_0);
-    auto text_file_1        = text_dump_filename(base_name_1);
-    auto compressed_file    = compressed_dump_filename(base_name);
-    auto compressed_file_0  = compressed_dump_filename(base_name_0);
-    auto compressed_file_1  = compressed_dump_filename(base_name_1);
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name         = "multi_file_pad_run1_*.melt.custom";
+    auto base_name_0       = "multi_file_pad_run1_000.melt.custom";
+    auto base_name_1       = "multi_file_pad_run1_001.melt.custom";
+    auto text_file         = text_dump_filename(base_name);
+    auto text_file_0       = text_dump_filename(base_name_0);
+    auto text_file_1       = text_dump_filename(base_name_1);
+    auto compressed_file   = compressed_dump_filename(base_name);
+    auto compressed_file_0 = compressed_dump_filename(base_name_0);
+    auto compressed_file_1 = compressed_dump_filename(base_name_1);
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
 
     generate_text_and_compressed_dump(text_file, compressed_file, fields, "pad 3", 1);
 
@@ -237,20 +232,19 @@ TEST_F(DumpCustomCompressTest, compressed_multi_file_with_maxfiles_run1)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name   = "multi_file_maxfiles_run1_*.melt.custom";
-    const auto *base_name_0 = "multi_file_maxfiles_run1_0.melt.custom";
-    const auto *base_name_1 = "multi_file_maxfiles_run1_1.melt.custom";
-    const auto *base_name_2 = "multi_file_maxfiles_run1_2.melt.custom";
-    auto text_file          = text_dump_filename(base_name);
-    auto text_file_0        = text_dump_filename(base_name_0);
-    auto text_file_1        = text_dump_filename(base_name_1);
-    auto text_file_2        = text_dump_filename(base_name_2);
-    auto compressed_file    = compressed_dump_filename(base_name);
-    auto compressed_file_0  = compressed_dump_filename(base_name_0);
-    auto compressed_file_1  = compressed_dump_filename(base_name_1);
-    auto compressed_file_2  = compressed_dump_filename(base_name_2);
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto base_name         = "multi_file_maxfiles_run1_*.melt.custom";
+    auto base_name_0       = "multi_file_maxfiles_run1_0.melt.custom";
+    auto base_name_1       = "multi_file_maxfiles_run1_1.melt.custom";
+    auto base_name_2       = "multi_file_maxfiles_run1_2.melt.custom";
+    auto text_file         = text_dump_filename(base_name);
+    auto text_file_0       = text_dump_filename(base_name_0);
+    auto text_file_1       = text_dump_filename(base_name_1);
+    auto text_file_2       = text_dump_filename(base_name_2);
+    auto compressed_file   = compressed_dump_filename(base_name);
+    auto compressed_file_0 = compressed_dump_filename(base_name_0);
+    auto compressed_file_1 = compressed_dump_filename(base_name_1);
+    auto compressed_file_2 = compressed_dump_filename(base_name_2);
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
 
     generate_text_and_compressed_dump(text_file, compressed_file, fields, "maxfiles 2", 2);
 
@@ -285,8 +279,7 @@ TEST_F(DumpCustomCompressTest, compressed_modify_bad_param)
 {
     if (compression_style != "custom/gz") GTEST_SKIP();
 
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
     command(fmt::format("dump id1 all {} 1 {} {}", compression_style,
                         compressed_dump_filename("modify_bad_param_run0_*.melt.custom"), fields));
 
@@ -299,8 +292,7 @@ TEST_F(DumpCustomCompressTest, compressed_modify_multi_bad_param)
 {
     if (compression_style != "custom/gz") GTEST_SKIP();
 
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
     command(fmt::format("dump id1 all {} 1 {} {}", compression_style,
                         compressed_dump_filename("modify_multi_bad_param_run0_*.melt.custom"),
                         fields));
@@ -314,12 +306,11 @@ TEST_F(DumpCustomCompressTest, compressed_modify_clevel_run0)
 {
     if (!COMPRESS_EXECUTABLE) GTEST_SKIP();
 
-    const auto *base_name = "modify_clevel_run0.melt.custom";
-    auto text_file        = text_dump_filename(base_name);
-    auto compressed_file  = compressed_dump_filename(base_name);
+    auto base_name       = "modify_clevel_run0.melt.custom";
+    auto text_file       = text_dump_filename(base_name);
+    auto compressed_file = compressed_dump_filename(base_name);
 
-    const auto *fields =
-        "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
+    auto fields = "id type proc x y z ix iy iz xs ys zs xu yu zu xsu ysu zsu vx vy vz fx fy fz";
     generate_text_and_compressed_dump(text_file, compressed_file, fields, fields, "",
                                       "compression_level 3", 0);
 

@@ -206,8 +206,7 @@ FALSE.
 
 Restrictions
 """"""""""""
-
-none
+ none
 
 Related commands
 """"""""""""""""

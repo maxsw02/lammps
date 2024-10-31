@@ -1,11 +1,10 @@
 .. index:: angle_style spica
 .. index:: angle_style spica/omp
-.. index:: angle_style spica/kk
 
 angle_style spica command
 =========================
 
-Accelerator Variants: *spica/omp*, *spica/kk*
+Accelerator Variants: *spica/omp*
 
 Syntax
 """"""

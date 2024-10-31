@@ -2,13 +2,6 @@
 LAMMPS Documentation (|version| version)
 ########################################
 
-.. toctree::
-   :caption: About LAMMPS
-
-****************************
-About LAMMPS and this manual
-****************************
-
 LAMMPS stands for **L**\ arge-scale **A**\ tomic/**M**\ olecular
 **M**\ assively **P**\ arallel **S**\ imulator.
 
@@ -46,12 +39,9 @@ doc directory.
 
 If needed, you can build a copy on your local machine of the manual
 (HTML pages or PDF file) for the version of LAMMPS you have
-downloaded.  Follow the steps on the :doc:`Build_manual` page.
-
-.. only:: html
-
-   If you have difficulties viewing the HTML pages, please :ref:`see this note
-   <webbrowser>` about compatibility with web browsers.
+downloaded.  Follow the steps on the :doc:`Build_manual` page.  If you
+have difficulties viewing the pages, please :ref:`see this note
+<webbrowser>`.
 
 -----------
 
@@ -154,28 +144,26 @@ Indices and tables
    * :ref:`genindex`
    * :ref:`search`
 
-.. only:: html
+.. _webbrowser:
+.. admonition:: Web Browser Compatibility
+   :class: note
 
-  .. _webbrowser:
-  .. admonition:: Web Browser Compatibility
-     :class: note
+   The HTML version of the manual makes use of advanced features present
+   in "modern" web browsers.  This leads to incompatibilities with older
+   web browsers and specific vendor browsers (e.g. Internet Explorer on Windows)
+   where parts of the pages are not rendered as expected (e.g. the layout is
+   broken or mathematical expressions not typeset).  In that case we
+   recommend to install/use a different/newer web browser or use
+   the `PDF version of the manual <https://docs.lammps.org/Manual.pdf>`_.
 
-     The HTML version of the manual makes use of advanced features present
-     in "modern" web browsers.  This leads to incompatibilities with older
-     web browsers and specific vendor browsers (e.g. Internet Explorer on Windows)
-     where parts of the pages are not rendered as expected (e.g. the layout is
-     broken or mathematical expressions not typeset).  In that case we
-     recommend to install/use a different/newer web browser or use
-     the `PDF version of the manual <https://docs.lammps.org/Manual.pdf>`_.
+   The following web browser versions have been verified to work as
+   expected on Linux, macOS, and Windows where available:
 
-     The following web browser versions have been verified to work as
-     expected on Linux, macOS, and Windows where available:
+   - Safari version 11.1 and later
+   - Firefox version 54 and later
+   - Chrome version 54 and later
+   - Opera version 41 and later
+   - Edge version 80 and later
 
-     - Safari version 11.1 and later
-     - Firefox version 54 and later
-     - Chrome version 54 and later
-     - Opera version 41 and later
-     - Edge version 80 and later
-
-     Also Android version 7.1 and later and iOS version 11 and later have
-     been verified to render this website as expected.
+   Also Android version 7.1 and later and iOS version 11 and later have
+   been verified to render this website as expected.

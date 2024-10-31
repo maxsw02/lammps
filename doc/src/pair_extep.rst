@@ -33,7 +33,7 @@ none
 Related commands
 """"""""""""""""
 
-:doc:`pair_tersoff <pair_tersoff>`
+`pair_tersoff <pair tersoff>`
 
 Default
 """""""

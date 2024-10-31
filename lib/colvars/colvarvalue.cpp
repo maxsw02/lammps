@@ -8,10 +8,11 @@
 // Colvars repository at GitHub.
 
 #include <vector>
+#include <sstream>
+#include <iostream>
 
 #include "colvarmodule.h"
 #include "colvarvalue.h"
-#include "colvars_memstream.h"
 
 
 
@@ -720,43 +721,29 @@ int colvarvalue::from_simple_string(std::string const &s)
   return COLVARS_ERROR;
 }
 
-
-template <typename OST> void colvarvalue::write_to_stream_template_(OST &os) const
+std::ostream & operator << (std::ostream &os, colvarvalue const &x)
 {
-  switch (type()) {
+  switch (x.type()) {
   case colvarvalue::type_scalar:
-    os << real_value;
+    os << x.real_value;
     break;
   case colvarvalue::type_3vector:
   case colvarvalue::type_unit3vector:
   case colvarvalue::type_unit3vectorderiv:
-    os << rvector_value;
+    os << x.rvector_value;
     break;
   case colvarvalue::type_quaternion:
   case colvarvalue::type_quaternionderiv:
-    os << quaternion_value;
+    os << x.quaternion_value;
     break;
   case colvarvalue::type_vector:
-    os << vector1d_value;
+    os << x.vector1d_value;
     break;
   case colvarvalue::type_notset:
   default:
     os << "not set";
     break;
   }
-}
-
-
-std::ostream & operator << (std::ostream &os, colvarvalue const &x)
-{
-  x.write_to_stream_template_<std::ostream>(os);
-  return os;
-}
-
-
-cvm::memory_stream & operator << (cvm::memory_stream &os, colvarvalue const &x)
-{
-  x.write_to_stream_template_<cvm::memory_stream>(os);
   return os;
 }
 
@@ -771,54 +758,43 @@ std::ostream & operator << (std::ostream &os, std::vector<colvarvalue> const &v)
 }
 
 
-template <typename IST> void colvarvalue::read_from_stream_template_(IST &is)
+std::istream & operator >> (std::istream &is, colvarvalue &x)
 {
-  if (type() == colvarvalue::type_notset) {
+  if (x.type() == colvarvalue::type_notset) {
     cvm::error("Trying to read from a stream a colvarvalue, "
                "which has not yet been assigned a data type.\n");
+    return is;
   }
 
-  switch (type()) {
+  switch (x.type()) {
   case colvarvalue::type_scalar:
-    is >> real_value;
+    is >> x.real_value;
     break;
   case colvarvalue::type_3vector:
   case colvarvalue::type_unit3vectorderiv:
-    is >> rvector_value;
+    is >> x.rvector_value;
     break;
   case colvarvalue::type_unit3vector:
-    is >> rvector_value;
-    apply_constraints();
+    is >> x.rvector_value;
+    x.apply_constraints();
     break;
   case colvarvalue::type_quaternion:
-    is >> quaternion_value;
-    apply_constraints();
+    is >> x.quaternion_value;
+    x.apply_constraints();
     break;
   case colvarvalue::type_quaternionderiv:
-    is >> quaternion_value;
+    is >> x.quaternion_value;
     break;
   case colvarvalue::type_vector:
-    is >> vector1d_value;
+    is >> x.vector1d_value;
     break;
   case colvarvalue::type_notset:
   default:
-    undef_op();
+    x.undef_op();
   }
-}
-
-
-std::istream & operator >> (std::istream &is, colvarvalue &x)
-{
-  x.read_from_stream_template_<std::istream>(is);
   return is;
 }
 
-
-cvm::memory_stream & operator >> (cvm::memory_stream &is, colvarvalue &x)
-{
-  x.read_from_stream_template_<cvm::memory_stream>(is);
-  return is;
-}
 
 size_t colvarvalue::output_width(size_t const &real_width) const
 {

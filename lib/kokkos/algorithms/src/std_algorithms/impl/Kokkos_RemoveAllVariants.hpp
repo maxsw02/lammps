@@ -1,18 +1,46 @@
+/*
 //@HEADER
 // ************************************************************************
 //
-//                        Kokkos v. 4.0
-//       Copyright (2022) National Technology & Engineering
+//                        Kokkos v. 3.0
+//       Copyright (2020) National Technology & Engineering
 //               Solutions of Sandia, LLC (NTESS).
 //
 // Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
-// Part of Kokkos, under the Apache License v2.0 with LLVM Exceptions.
-// See https://kokkos.org/LICENSE for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
 //
+// 1. Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+//
+// 3. Neither the name of the Corporation nor the names of the
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL NTESS OR THE
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+//
+// ************************************************************************
 //@HEADER
+*/
 
 #ifndef KOKKOS_STD_ALGORITHMS_REMOVE_IMPL_HPP
 #define KOKKOS_STD_ALGORITHMS_REMOVE_IMPL_HPP
@@ -46,14 +74,15 @@ struct StdRemoveIfStage1Functor {
   void operator()(const IndexType i, IndexType& update,
                   const bool final_pass) const {
     auto& myval = m_first_from[i];
-
-    if (!m_must_remove(myval)) {
-      if (final_pass) {
+    if (final_pass) {
+      if (!m_must_remove(myval)) {
         // calling move here is ok because we are inside final pass
         // we are calling move assign as specified by the std
         m_first_dest[update] = std::move(myval);
       }
+    }
 
+    if (!m_must_remove(myval)) {
       update += 1;
     }
   }
@@ -75,14 +104,10 @@ struct StdRemoveIfStage2Functor {
   }
 };
 
-//
-// remove if
-//
 template <class ExecutionSpace, class IteratorType, class UnaryPredicateType>
-IteratorType remove_if_exespace_impl(const std::string& label,
-                                     const ExecutionSpace& ex,
-                                     IteratorType first, IteratorType last,
-                                     UnaryPredicateType pred) {
+IteratorType remove_if_impl(const std::string& label, const ExecutionSpace& ex,
+                            IteratorType first, IteratorType last,
+                            UnaryPredicateType pred) {
   Impl::static_assert_random_access_and_accessible(ex, first);
   Impl::expect_valid_range(first, last);
 
@@ -107,9 +132,7 @@ IteratorType remove_if_exespace_impl(const std::string& label,
     // create helper tmp view
     using value_type    = typename IteratorType::value_type;
     using tmp_view_type = Kokkos::View<value_type*, ExecutionSpace>;
-    tmp_view_type tmp_view(Kokkos::view_alloc(Kokkos::WithoutInitializing, ex,
-                                              "std_remove_if_tmp_view"),
-                           keep_count);
+    tmp_view_type tmp_view("std_remove_if_tmp_view", keep_count);
     using tmp_readwrite_iterator_type = decltype(begin(tmp_view));
 
     // in stage 1, *move* all elements to keep from original range to tmp
@@ -144,71 +167,19 @@ IteratorType remove_if_exespace_impl(const std::string& label,
   }
 }
 
-template <class TeamHandleType, class IteratorType, class UnaryPredicateType>
-KOKKOS_FUNCTION IteratorType
-remove_if_team_impl(const TeamHandleType& teamHandle, IteratorType first,
-                    IteratorType last, UnaryPredicateType pred) {
-  Impl::static_assert_random_access_and_accessible(teamHandle, first);
-  Impl::expect_valid_range(first, last);
-
-  if (first == last) {
-    return last;
-  } else {
-    const auto remove_count =
-        ::Kokkos::Experimental::count_if(teamHandle, first, last, pred);
-    const std::size_t num_elements =
-        ::Kokkos::Experimental::distance(first, last);
-
-    if (remove_count > 0) {
-      std::size_t count = 0;
-      Kokkos::single(
-          Kokkos::PerTeam(teamHandle),
-          [=](std::size_t& lcount) {
-            lcount = 0;
-            for (std::size_t i = 0; i < num_elements; ++i) {
-              if (!pred(first[i])) {
-                first[lcount++] = std::move(first[i]);
-              }
-            }
-          },
-          count);
-    }
-    // no barrier needed since single above broadcasts to all members
-
-    return first + num_elements - remove_count;
-  }
-}
-
-//
-// remove
-//
 template <class ExecutionSpace, class IteratorType, class ValueType>
-auto remove_exespace_impl(const std::string& label, const ExecutionSpace& ex,
-                          IteratorType first, IteratorType last,
-                          const ValueType& value) {
+auto remove_impl(const std::string& label, const ExecutionSpace& ex,
+                 IteratorType first, IteratorType last,
+                 const ValueType& value) {
   using predicate_type = StdAlgoEqualsValUnaryPredicate<ValueType>;
-  return remove_if_exespace_impl(label, ex, first, last, predicate_type(value));
+  return remove_if_impl(label, ex, first, last, predicate_type(value));
 }
 
-template <class TeamHandleType, class IteratorType, class ValueType>
-KOKKOS_FUNCTION auto remove_team_impl(const TeamHandleType& teamHandle,
-                                      IteratorType first, IteratorType last,
-                                      const ValueType& value) {
-  using predicate_type = StdAlgoEqualsValUnaryPredicate<ValueType>;
-  return remove_if_team_impl(teamHandle, first, last, predicate_type(value));
-}
-
-//
-// remove_copy
-//
 template <class ExecutionSpace, class InputIteratorType,
           class OutputIteratorType, class ValueType>
-auto remove_copy_exespace_impl(const std::string& label,
-                               const ExecutionSpace& ex,
-                               InputIteratorType first_from,
-                               InputIteratorType last_from,
-                               OutputIteratorType first_dest,
-                               const ValueType& value) {
+auto remove_copy_impl(const std::string& label, const ExecutionSpace& ex,
+                      InputIteratorType first_from, InputIteratorType last_from,
+                      OutputIteratorType first_dest, const ValueType& value) {
   // this is like copy_if except that we need to *ignore* the elements
   // that match the value, so we can solve this as follows:
 
@@ -217,32 +188,13 @@ auto remove_copy_exespace_impl(const std::string& label,
                                          first_dest, predicate_type(value));
 }
 
-template <class TeamHandleType, class InputIteratorType,
-          class OutputIteratorType, class ValueType>
-KOKKOS_FUNCTION auto remove_copy_team_impl(const TeamHandleType& teamHandle,
-                                           InputIteratorType first_from,
-                                           InputIteratorType last_from,
-                                           OutputIteratorType first_dest,
-                                           const ValueType& value) {
-  // this is like copy_if except that we need to *ignore* the elements
-  // that match the value, so we can solve this as follows:
-
-  using predicate_type = StdAlgoNotEqualsValUnaryPredicate<ValueType>;
-  return ::Kokkos::Experimental::copy_if(teamHandle, first_from, last_from,
-                                         first_dest, predicate_type(value));
-}
-
-//
-// remove_copy_if
-//
 template <class ExecutionSpace, class InputIteratorType,
           class OutputIteratorType, class UnaryPredicate>
-auto remove_copy_if_exespace_impl(const std::string& label,
-                                  const ExecutionSpace& ex,
-                                  InputIteratorType first_from,
-                                  InputIteratorType last_from,
-                                  OutputIteratorType first_dest,
-                                  const UnaryPredicate& pred) {
+auto remove_copy_if_impl(const std::string& label, const ExecutionSpace& ex,
+                         InputIteratorType first_from,
+                         InputIteratorType last_from,
+                         OutputIteratorType first_dest,
+                         const UnaryPredicate& pred) {
   // this is like copy_if except that we need to *ignore* the elements
   // satisfying the pred, so we can solve this as follows:
 
@@ -250,20 +202,6 @@ auto remove_copy_if_exespace_impl(const std::string& label,
   using pred_wrapper_type =
       StdAlgoNegateUnaryPredicateWrapper<value_type, UnaryPredicate>;
   return ::Kokkos::Experimental::copy_if(label, ex, first_from, last_from,
-                                         first_dest, pred_wrapper_type(pred));
-}
-
-template <class TeamHandleType, class InputIteratorType,
-          class OutputIteratorType, class UnaryPredicate>
-KOKKOS_FUNCTION auto remove_copy_if_team_impl(const TeamHandleType& teamHandle,
-                                              InputIteratorType first_from,
-                                              InputIteratorType last_from,
-                                              OutputIteratorType first_dest,
-                                              const UnaryPredicate& pred) {
-  using value_type = typename InputIteratorType::value_type;
-  using pred_wrapper_type =
-      StdAlgoNegateUnaryPredicateWrapper<value_type, UnaryPredicate>;
-  return ::Kokkos::Experimental::copy_if(teamHandle, first_from, last_from,
                                          first_dest, pred_wrapper_type(pred));
 }
 

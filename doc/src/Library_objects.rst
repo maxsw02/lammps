@@ -9,9 +9,6 @@ fixes, or variables in LAMMPS using the following functions:
 - :cpp:func:`lammps_extract_variable_datatype`
 - :cpp:func:`lammps_extract_variable`
 - :cpp:func:`lammps_set_variable`
-- :cpp:func:`lammps_set_string_variable`
-- :cpp:func:`lammps_set_internal_variable`
-- :cpp:func:`lammps_variable_info`
 
 -----------------------
 
@@ -36,21 +33,6 @@ fixes, or variables in LAMMPS using the following functions:
 -----------------------
 
 .. doxygenfunction:: lammps_set_variable
-   :project: progguide
-
------------------------
-
-.. doxygenfunction:: lammps_set_string_variable
-   :project: progguide
-
------------------------
-
-.. doxygenfunction:: lammps_set_internal_variable
-   :project: progguide
-
------------------------
-
-.. doxygenfunction:: lammps_variable_info
    :project: progguide
 
 -----------------------

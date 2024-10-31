@@ -44,7 +44,7 @@ energy relaxes toward the saddle point (i.e. the point of highest energy
 along the MEP), and a second relaxation is performed.
 
 The nudging forces are calculated as explained in
-:ref:`(Bessarab) <BessarabB>`).
+:ref:`(BessarabB) <BessarabB>`).
 See this reference for more explanation about their expression.
 
 Restart, fix_modify, output, run start/stop, minimize info
@@ -81,5 +81,5 @@ none
 
 .. _BessarabB:
 
-**(Bessarab)** Bessarab, Uzdin, Jonsson, Comp Phys Comm, 196,
+**(BessarabB)** Bessarab, Uzdin, Jonsson, Comp Phys Comm, 196,
 335-347 (2015).

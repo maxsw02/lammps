@@ -83,16 +83,6 @@ private:
     QSettings *settings;
 };
 
-class EditorTab : public QWidget {
-    Q_OBJECT
-
-public:
-    explicit EditorTab(QSettings *settings, QWidget *parent = nullptr);
-
-private:
-    QSettings *settings;
-};
-
 #endif
 
 // Local Variables:

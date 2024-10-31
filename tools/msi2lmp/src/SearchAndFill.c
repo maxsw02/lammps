@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <errno.h>
 
 #if defined(_WIN32)
 #define strdup(x) _strdup(x)
@@ -92,14 +91,10 @@ void SearchAndFill(struct FrcFieldItem *item)
   }
 
   file_pos = ftell(FrcF);
-  if (file_pos < 0) {
-    fprintf(stderr, "Could not obtain file stream position: %s\n", strerror(errno));
-    exit(2);
-  }
 
   /* Count the number of lines until next item is found */
 
-  while (strncmp(fgets(line,MAX_LINE_LENGTH,FrcF), "#", 1) != 0 )
+  while( strncmp(fgets(line,MAX_LINE_LENGTH,FrcF), "#", 1) != 0 )
     ctr++;
 
   /* Allocate the memory using calloc */
@@ -115,10 +110,7 @@ void SearchAndFill(struct FrcFieldItem *item)
 
   /* Read lines until keyword is found */
 
-  if (fseek(FrcF,file_pos,SEEK_SET) < 0) {
-    fprintf(stderr, "Resetting file stream failed: %s\n", strerror(errno));
-    exit(2);
-  }
+  fseek(FrcF,file_pos,SEEK_SET);
   strcpy(line,"empty");
 
   /* Read lines until data starts (when !--- is found) */
@@ -212,7 +204,7 @@ void SearchAndFill(struct FrcFieldItem *item)
         item->data[replace].ver = version;
         item->data[replace].ref = reference;
         for (i=0; i < item->number_of_members; i++) {
-          memcpy(item->data[replace].ff_types[i],atom_types[i],5);
+          strncpy(item->data[replace].ff_types[i],atom_types[i],5);
         }
         for (i=0; i < item->number_of_parameters; i++) {
           item->data[replace].ff_param[i] = parameters[i];
@@ -230,7 +222,7 @@ void SearchAndFill(struct FrcFieldItem *item)
       item->data[ctr].ver = version;
       item->data[ctr].ref = reference;
       for (i=0; i < item->number_of_members; i++) {
-        memcpy(item->data[ctr].ff_types[i],atom_types[i],5);
+        strncpy(item->data[ctr].ff_types[i],atom_types[i],5);
       }
       for (i=0; i < item->number_of_parameters; i++) {
         item->data[ctr].ff_param[i] = parameters[i];

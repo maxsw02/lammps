@@ -1,12 +1,11 @@
 .. index:: pair_style soft
 .. index:: pair_style soft/gpu
-.. index:: pair_style soft/kk
 .. index:: pair_style soft/omp
 
 pair_style soft command
 =======================
 
-Accelerator Variants: *soft/gpu*, *soft/kk*, *soft/omp*
+Accelerator Variants: *soft/gpu*, *soft/omp*
 
 Syntax
 """"""

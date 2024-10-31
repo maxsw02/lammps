@@ -11,6 +11,8 @@ QNodes::QNodes()
    qs.clear();
    qe.clear();
    nqbin.clear();
+
+   return;
 }
 
 /* ----------------------------------------------------------------------------
@@ -23,4 +25,6 @@ QNodes::~QNodes()
    qs.clear();
    qe.clear();
    nqbin.clear();
+
+   return;
 }

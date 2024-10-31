@@ -39,7 +39,7 @@ InstallDir "$LOCALAPPDATA\${PACEPLUGIN}"
 
 ShowInstDetails show
 ShowUninstDetails show
-SetCompressor zlib
+SetCompressor lzma
 
 !define MUI_ABORTWARNING
 

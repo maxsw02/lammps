@@ -32,9 +32,9 @@ The table below lists the force field parameters (in real :doc:`units
 <Mahoney>` and the TIP5P-E model :ref:`(Rick) <Rick>` for use with a
 long-range Coulombic solver (e.g. Ewald or PPPM in LAMMPS).
 
-.. list-table::
+   .. list-table::
       :header-rows: 1
-      :widths: 50 25 25
+      :widths: auto
 
       * - Parameter
         - TIP5P
@@ -81,13 +81,11 @@ long-range Coulombic solver (e.g. Ewald or PPPM in LAMMPS).
 
 Below is the code for a LAMMPS input file for setting up a simulation of
 TIP5P water with a molecule file.  Because of using :doc:`fix
-rigid/small <fix_rigid>` no bonds need to be defined and thus no extra
-storage needs to be reserved for them, but we need to either switch to
+rigid/nvt/small <fix_rigid>` no bonds need to be defined and thus no
+extra storage needs to be reserved for them, but we need to switch to
 atom style full or use :doc:`fix property/atom mol <fix_property_atom>`
-so that fix rigid/small can identify rigid bodies by their molecule ID.
-Also a :doc:`neigh_modify exclude <neigh_modify>` command is added to
-exclude computing intramolecular non-bonded interactions, since those
-are removed by the rigid fix anyway:
+so that fix rigid/nvt/small can identify rigid bodies by their molecule
+ID:
 
 .. code-block:: LAMMPS
 
@@ -109,11 +107,11 @@ are removed by the rigid fix anyway:
     fix mol all property/atom mol
     molecule water tip5p.mol
     create_atoms 0 random 33 34564 NULL mol water 25367 overlap 1.33
-    neigh_modify exclude molecule/intra all
 
     timestep 0.5
-    fix integrate all rigid/small molecule langevin 300.0 300.0 50.0 235664
+    fix integrate all rigid/nvt/small molecule temp 300.0 300.0 100.0
     reset_timestep 0
+    velocity all create 300.0 5463576
 
     thermo_style custom step temp press etotal density pe ke
     thermo 1000

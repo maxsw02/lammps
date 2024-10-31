@@ -1,7 +1,7 @@
-# -*- CMake -*- configuration for generating LAMMPS script language wrappers with SWIG
+# CMake configuration for generating script language interfaces with SWIG
 
 # set minimum CMake version required and switch to new policies for SWIG
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.14)
 if(POLICY CMP0078)
   cmake_policy(SET CMP0078 NEW)
 endif()

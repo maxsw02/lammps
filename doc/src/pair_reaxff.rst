@@ -43,22 +43,22 @@ Examples
 Description
 """""""""""
 
-Pair style *reaxff* computes the ReaxFF potential of van Duin, Goddard
-and co-workers.  ReaxFF uses distance-dependent bond-order functions to
+Style *reaxff* computes the ReaxFF potential of van Duin, Goddard and
+co-workers.  ReaxFF uses distance-dependent bond-order functions to
 represent the contributions of chemical bonding to the potential
-energy.  There is more than one version of ReaxFF.  The version
+energy. There is more than one version of ReaxFF. The version
 implemented in LAMMPS uses the functional forms documented in the
 supplemental information of the following paper:
-:ref:`(Chenoweth et al., 2008) <Chenoweth_20082>` and matches the
-version of the reference ReaxFF implementation from Summer 2010.  For
-more technical details about the implementation of ReaxFF in pair style
-*reaxff*, see the :ref:`(Aktulga) <Aktulga>` paper. The *reaxff* style
-was initially implemented as a stand-alone C code and is now converted
-to C++ and integrated into LAMMPS as a package.
+:ref:`(Chenoweth et al., 2008) <Chenoweth_20082>`.  The version integrated
+into LAMMPS matches the version of ReaxFF From Summer 2010.  For more
+technical details about the pair reaxff implementation of ReaxFF, see
+the :ref:`(Aktulga) <Aktulga>` paper. The *reaxff* style was initially
+implemented as a stand-alone C code and is now converted to C++ and
+integrated into LAMMPS as a package.
 
 The *reaxff/kk* style is a Kokkos version of the ReaxFF potential that
-is derived from the *reaxff* style.  The Kokkos version can run on GPUs
-and can also use OpenMP multithreading.  For more information about the
+is derived from the *reaxff* style. The Kokkos version can run on GPUs
+and can also use OpenMP multithreading. For more information about the
 Kokkos package, see :doc:`Packages details <Packages_details>` and
 :doc:`Speed kokkos <Speed_kokkos>` doc pages.  One important
 consideration when using the *reaxff/kk* style is the choice of either
@@ -72,7 +72,8 @@ from LAMMPS after the 12 December 2018 version.
 
 LAMMPS provides several different versions of ffield.reax in its
 potentials dir, each called potentials/ffield.reax.label.  These are
-documented in potentials/README.reax.
+documented in potentials/README.reax.  The default ffield.reax
+contains parameterizations for the following elements: C, H, O, N.
 
 The format of these files is identical to that used originally by van
 Duin.  We have tested the accuracy of *pair_style reaxff* potential
@@ -109,14 +110,12 @@ control variable.  The format of the control file is described below.
    not agree.
 
 Examples using *pair_style reaxff* are provided in the examples/reax
-directory and its subdirectories.
+subdirectory.
 
-Use of this pair style requires using an :doc:`atom_style <atom_style>`
-that includes a per-atom charge property *or* using
-:doc:`fix property/atom q <fix_property_atom>`.  Charges can be set
-via :doc:`read_data <read_data>` or :doc:`set <set>`.  Using an initial
-charge that is close to the result of charge equilibration will speed
-up that process.
+Use of this pair style requires that a charge be defined for every
+atom.  See the :doc:`atom_style <atom_style>` and
+:doc:`read_data <read_data>` commands for details on how to specify
+charges.
 
 The ReaxFF parameter files provided were created using a charge
 equilibration (QEq) model for handling the electrostatic interactions.
@@ -373,8 +372,7 @@ Related commands
 
 :doc:`pair_coeff <pair_coeff>`, :doc:`fix qeq/reaxff <fix_qeq_reaxff>`,
 :doc:`fix acks2/reaxff <fix_acks2_reaxff>`, :doc:`fix reaxff/bonds <fix_reaxff_bonds>`,
-:doc:`fix reaxff/species <fix_reaxff_species>`,
-:doc:`compute reaxff/atom <compute_reaxff_atom>`
+:doc:`fix reaxff/species <fix_reaxff_species>`
 
 Default
 """""""

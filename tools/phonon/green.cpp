@@ -65,6 +65,8 @@ Green::Green(const int ntm, const int sdim, const int niter, const double min, c
  
    // Get the inverser of the treated hessian by continued fractional method
    Recursion();
+ 
+   return;
 }
 
 /*------------------------------------------------------------------------------
@@ -72,12 +74,14 @@ Green::Green(const int ntm, const int sdim, const int niter, const double min, c
  *----------------------------------------------------------------------------*/
 Green::~Green()
 {
-   H = nullptr;
-   ldos = nullptr;
+   H = NULL;
+   ldos = NULL;
    memory->destroy(alpha);
    memory->destroy(beta);
  
    delete memory;
+ 
+   return;
 }
       
 /*------------------------------------------------------------------------------
@@ -130,6 +134,8 @@ void Green::Lanczos()
    delete []vp;
    delete []v;
    delete []w;
+ 
+   return;
 }
 
 /*------------------------------------------------------------------------------
@@ -205,6 +211,8 @@ void Green::Recursion()
    delete []beta_inf;
    delete []xmin;
    delete []xmax;
+ 
+   return;
 }
 
 /*------------------------------------------------------------------------------
@@ -231,6 +239,7 @@ void Green::recursion()
       }
       w += dw;
    }
-   }
+   return;
+}
 
 /*------------------------------------------------------------------------------*/

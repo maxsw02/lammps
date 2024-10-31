@@ -117,17 +117,6 @@ TEST_F(InputConvertTest, numeric)
     TEST_FAILURE(".*ERROR: Expected floating point.*", utils::numeric(FLERR, nullptr, false, lmp););
     TEST_FAILURE(".*ERROR: Expected floating point.*",
                  utils::numeric(FLERR, "2.56D+3", false, lmp););
-    TEST_FAILURE(".*ERROR: Floating point number.*out of range.*",
-                 utils::numeric(FLERR, "1.0e2000", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating .*", utils::numeric(FLERR, "--546700-", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "546700+", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "--546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "++546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "+-546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating .*", utils::numeric(FLERR, "5.467e--1", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "4.4e++1", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "--5.0460", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected floating.*", utils::numeric(FLERR, "++5.4670", false, lmp););
 }
 
 TEST_F(InputConvertTest, inumeric)
@@ -153,13 +142,6 @@ TEST_F(InputConvertTest, inumeric)
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "0x05", false, lmp););
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "", false, lmp););
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, nullptr, false, lmp););
-    TEST_FAILURE(".*ERROR: Integer.*out of range.*",
-                 utils::inumeric(FLERR, "1263012546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "--546700-", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "546700+", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "--546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "++546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::inumeric(FLERR, "+-546700", false, lmp););
 }
 
 TEST_F(InputConvertTest, bnumeric)
@@ -185,13 +167,6 @@ TEST_F(InputConvertTest, bnumeric)
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "0x05", false, lmp););
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "", false, lmp););
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, nullptr, false, lmp););
-    TEST_FAILURE(".*ERROR: Integer.*out of range.*",
-                 utils::bnumeric(FLERR, "18446744073709551616123", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "--546700-", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "546700+", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "--546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "++546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::bnumeric(FLERR, "+-546700", false, lmp););
 }
 
 TEST_F(InputConvertTest, tnumeric)
@@ -217,17 +192,6 @@ TEST_F(InputConvertTest, tnumeric)
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "0x05", false, lmp););
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "", false, lmp););
     TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, nullptr, false, lmp););
-#if defined(LAMMPS_SMALLBIG)
-    TEST_FAILURE(".*ERROR: Integer.*out of range.*",
-                 utils::tnumeric(FLERR, "4294967296", false, lmp););
-#endif
-    TEST_FAILURE(".*ERROR: Integer.*out of range.*",
-                 utils::tnumeric(FLERR, "18446744073709551616123", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "--546700-", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "546700+", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "--546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "++546700", false, lmp););
-    TEST_FAILURE(".*ERROR: Expected integer.*", utils::tnumeric(FLERR, "+-546700", false, lmp););
 }
 
 } // namespace LAMMPS_NS

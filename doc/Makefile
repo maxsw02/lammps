@@ -83,10 +83,7 @@ $(SPHINXCONFIG)/conf.py: $(SPHINXCONFIG)/conf.py.in
 	    -e 's,@LAMMPS_PYTHON_DIR@,$(BUILDDIR)/../python,g' \
 	    -e 's,@LAMMPS_DOC_DIR@,$(BUILDDIR),g' $< > $@
 
-globbed-tocs:
-	$(PYTHON) $(BUILDDIR)/utils/make-globbed-tocs.py -d $(RSTDIR)
-
-html: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(MATHJAX)
+html: xmlgen $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(MATHJAX)
 	@if [ "$(HAS_BASH)" == "NO" ] ; then echo "bash was not found at $(OSHELL)! Please use: $(MAKE) SHELL=/path/to/bash" 1>&2; exit 1; fi
 	@$(MAKE) $(MFLAGS) -C graphviz all
 	@(\
@@ -103,7 +100,6 @@ html: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(MATHJ
 		env LC_ALL=C grep -n ' :[a-z]\+`' $(RSTDIR)/*.rst ;\
 		env LC_ALL=C grep -n ' `[^`]\+<[a-z][^`]\+`[^_]' $(RSTDIR)/*.rst ;\
 		env LC_ALL=C grep -n ':\(ref\|doc\):[^`]' $(RSTDIR)/*.rst ;\
-		env LC_ALL=C grep -n '\(ref\|doc\)`[^`]' $(RSTDIR)/*.rst ;\
 		$(PYTHON) $(BUILDDIR)/utils/check-styles.py -s ../src -d src ;\
 		echo "############################################" ;\
 		deactivate ;\
@@ -116,7 +112,7 @@ html: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(MATHJ
 	@rm -rf html/PDF/.[sg]*
 	@echo "Build finished. The HTML pages are in doc/html."
 
-fasthtml: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(MATHJAX)
+fasthtml: xmlgen $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(MATHJAX)
 	@if [ "$(HAS_BASH)" == "NO" ] ; then echo "bash was not found at $(OSHELL)! Please use: $(MAKE) SHELL=/path/to/bash" 1>&2; exit 1; fi
 	@$(MAKE) $(MFLAGS) -C graphviz all
 	@mkdir -p fasthtml
@@ -135,7 +131,7 @@ fasthtml: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK) $(M
 	@rm -rf fasthtml/PDF/.[sg]*
 	@echo "Fast HTML build finished. The HTML pages are in doc/fasthtml."
 
-spelling: xmlgen globbed-tocs $(SPHINXCONFIG)/conf.py $(VENV) $(SPHINXCONFIG)/false_positives.txt
+spelling: xmlgen $(SPHINXCONFIG)/conf.py $(VENV) $(SPHINXCONFIG)/false_positives.txt
 	@if [ "$(HAS_BASH)" == "NO" ] ; then echo "bash was not found at $(OSHELL)! Please use: $(MAKE) SHELL=/path/to/bash" 1>&2; exit 1; fi
 	@(\
 		. $(VENV)/bin/activate ; \
@@ -146,7 +142,7 @@ spelling: xmlgen globbed-tocs $(SPHINXCONFIG)/conf.py $(VENV) $(SPHINXCONFIG)/fa
 	)
 	@echo "Spell check finished."
 
-epub: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK)
+epub: xmlgen $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK)
 	@if [ "$(HAS_BASH)" == "NO" ] ; then echo "bash was not found at $(OSHELL)! Please use: $(MAKE) SHELL=/path/to/bash" 1>&2; exit 1; fi
 	@$(MAKE) $(MFLAGS) -C graphviz all
 	@mkdir -p epub/JPG
@@ -169,7 +165,7 @@ mobi: epub
 	@ebook-convert LAMMPS.epub LAMMPS.mobi
 	@echo "Conversion finished. The MOBI manual file is created."
 
-pdf: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK)
+pdf: xmlgen $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK)
 	@if [ "$(HAS_BASH)" == "NO" ] ; then echo "bash was not found at $(OSHELL)! Please use: $(MAKE) SHELL=/path/to/bash" 1>&2; exit 1; fi
 	@$(MAKE) $(MFLAGS) -C graphviz all
 	@if [ "$(HAS_PDFLATEX)" == "NO" ] ; then echo "PDFLaTeX or latexmk were not found! Please check README for further instructions" 1>&2; exit 1; fi
@@ -186,7 +182,6 @@ pdf: xmlgen globbed-tocs $(VENV) $(SPHINXCONFIG)/conf.py $(ANCHORCHECK)
 		env LC_ALL=C grep -n ' :[a-z]\+`' $(RSTDIR)/*.rst ;\
 		env LC_ALL=C grep -n ' `[^`]\+<[a-z][^`]\+`[^_]' $(RSTDIR)/*.rst ;\
 		env LC_ALL=C grep -n ':\(ref\|doc\):[^`]' $(RSTDIR)/*.rst ;\
-		env LC_ALL=C grep -n '\(ref\|doc\)`[^`]' $(RSTDIR)/*.rst ;\
 		$(PYTHON) utils/check-styles.py -s ../src -d src ;\
 		echo "############################################" ;\
 		deactivate ;\
@@ -236,7 +231,6 @@ role_check :
 	@( env LC_ALL=C grep -n ' :[a-z]\+`' $(RSTDIR)/*.rst && exit 1 || : )
 	@( env LC_ALL=C grep -n ' `[^`]\+<[a-z][^`]\+`[^_]' $(RSTDIR)/*.rst && exit 1 || : )
 	@( env LC_ALL=C grep -n ':\(ref\|doc\):[^`]' $(RSTDIR)/*.rst && exit 1 || : )
-	@( env LC_ALL=C grep -n '\(ref\|doc\)`[^`]' $(RSTDIR)/*.rst && exit 1 || : )
 
 link_check : $(VENV) html
 	@(\

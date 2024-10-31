@@ -13,9 +13,6 @@ This section documents the following functions:
 - :cpp:func:`lammps_extract_setting`
 - :cpp:func:`lammps_extract_global_datatype`
 - :cpp:func:`lammps_extract_global`
-- :cpp:func:`lammps_extract_pair_dimension`
-- :cpp:func:`lammps_extract_pair`
-- :cpp:func:`lammps_map_atom`
 
 --------------------
 
@@ -121,20 +118,5 @@ subdomains and processors.
 -----------------------
 
 .. doxygenfunction:: lammps_extract_global
-   :project: progguide
-
------------------------
-
-.. doxygenfunction:: lammps_extract_pair_dimension
-   :project: progguide
-
------------------------
-
-.. doxygenfunction:: lammps_extract_pair
-   :project: progguide
-
------------------------
-
-.. doxygenfunction:: lammps_map_atom
    :project: progguide
 

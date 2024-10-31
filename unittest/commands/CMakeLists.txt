@@ -1,4 +1,3 @@
-# -*- CMake -*- file for testing LAMMPS commands
 
 add_executable(test_simple_commands test_simple_commands.cpp)
 

@@ -1,8 +1,9 @@
 /*
- *   This routine reads the data from a .frc forcefield file and stores it in
- *   dynamically allocated memory. This allows for fast searches of the
- *   file.
- */
+*   This routine reads the data from a .frc forcefield file and stores it in
+*   dynamically allocated memory. This allows for fast searches of the
+*   file.
+*
+*/
 
 #include "msi2lmp.h"
 #include "Forcefield.h"

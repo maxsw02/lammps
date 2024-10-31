@@ -3,8 +3,6 @@
 min_style cg command
 ====================
 
-Accelerator Variant: *cg/kk*
-
 min_style hftn command
 ======================
 

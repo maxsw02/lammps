@@ -9,13 +9,23 @@ SPDX-License-Identifier: (BSD-3-Clause)
 #ifndef DESUL_ATOMICS_LOCK_ARRAY_CUDA_HPP_
 #define DESUL_ATOMICS_LOCK_ARRAY_CUDA_HPP_
 
-#include <cstdint>
-
 #include "desul/atomics/Common.hpp"
 #include "desul/atomics/Macros.hpp"
 
+#ifdef DESUL_HAVE_CUDA_ATOMICS
+
+#include <cstdint>
+
 namespace desul {
 namespace Impl {
+
+#ifdef __CUDA_ARCH__
+#define DESUL_IMPL_BALLOT_MASK(m, x) __ballot_sync(m, x)
+#define DESUL_IMPL_ACTIVEMASK __activemask()
+#else
+#define DESUL_IMPL_BALLOT_MASK(m, x) m == 0 ? 0 : 1
+#define DESUL_IMPL_ACTIVEMASK 0
+#endif
 
 /// \brief This global variable in Host space is the central definition
 ///        of these arrays.
@@ -40,6 +50,14 @@ void init_lock_arrays_cuda();
 template <typename /*AlwaysInt*/ = int>
 void finalize_lock_arrays_cuda();
 
+}  // namespace Impl
+}  // namespace desul
+
+#if defined(__CUDACC__)
+
+namespace desul {
+namespace Impl {
+
 /// \brief This global variable in CUDA space is what kernels use
 ///        to get access to the lock arrays.
 ///
@@ -59,15 +77,17 @@ void finalize_lock_arrays_cuda();
 /// variable based on the Host global variable prior to running any kernels
 /// that will use it.
 /// That is the purpose of the ensure_cuda_lock_arrays_on_device function.
-#ifdef DESUL_ATOMICS_ENABLE_CUDA_SEPARABLE_COMPILATION
-extern
+__device__
+#ifdef __CUDACC_RDC__
+    __constant__ extern
 #endif
-    __device__ __constant__ int32_t* CUDA_SPACE_ATOMIC_LOCKS_DEVICE;
+    int32_t* CUDA_SPACE_ATOMIC_LOCKS_DEVICE;
 
-#ifdef DESUL_ATOMICS_ENABLE_CUDA_SEPARABLE_COMPILATION
-extern
+__device__
+#ifdef __CUDACC_RDC__
+    __constant__ extern
 #endif
-    __device__ __constant__ int32_t* CUDA_SPACE_ATOMIC_LOCKS_NODE;
+    int32_t* CUDA_SPACE_ATOMIC_LOCKS_NODE;
 
 #define CUDA_SPACE_ATOMIC_MASK 0x1FFFF
 
@@ -108,31 +128,45 @@ __device__ inline void unlock_address_cuda(void* ptr, desul::MemoryScopeNode) {
   atomicExch(&desul::Impl::CUDA_SPACE_ATOMIC_LOCKS_NODE[offset], 0);
 }
 
-#ifdef DESUL_ATOMICS_ENABLE_CUDA_SEPARABLE_COMPILATION
+}  // namespace Impl
+}  // namespace desul
+
+// Make lock_array_copied an explicit translation unit scope thingy
+namespace desul {
+namespace Impl {
+namespace {
+static int lock_array_copied = 0;
+inline int eliminate_warning_for_lock_array() { return lock_array_copied; }
+}  // namespace
+
+#ifdef __CUDACC_RDC__
 inline
 #else
 inline static
 #endif
     void
     copy_cuda_lock_arrays_to_device() {
-  static bool once = []() {
+  if (lock_array_copied == 0) {
     cudaMemcpyToSymbol(CUDA_SPACE_ATOMIC_LOCKS_DEVICE,
                        &CUDA_SPACE_ATOMIC_LOCKS_DEVICE_h,
                        sizeof(int32_t*));
     cudaMemcpyToSymbol(CUDA_SPACE_ATOMIC_LOCKS_NODE,
                        &CUDA_SPACE_ATOMIC_LOCKS_NODE_h,
                        sizeof(int32_t*));
-    return true;
-  }();
-  (void)once;
+  }
+  lock_array_copied = 1;
 }
 
 }  // namespace Impl
 }  // namespace desul
 
+#endif /* defined( __CUDACC__ ) */
+
+#endif /* defined( DESUL_HAVE_CUDA_ATOMICS ) */
+
 namespace desul {
 
-#ifdef DESUL_ATOMICS_ENABLE_CUDA_SEPARABLE_COMPILATION
+#if defined(__CUDACC_RDC__) || (!defined(__CUDACC__))
 inline void ensure_cuda_lock_arrays_on_device() {}
 #else
 static inline void ensure_cuda_lock_arrays_on_device() {

@@ -10,8 +10,6 @@
 #ifndef COLVARBIAS_H
 #define COLVARBIAS_H
 
-#include <memory>
-
 #include "colvar.h"
 #include "colvarparse.h"
 #include "colvardeps.h"
@@ -93,15 +91,10 @@ public:
   // FIXME this is currently 1D only
   virtual int current_bin();
   //// Give the count at a given bin index.
+  // FIXME this is currently 1D only
   virtual int bin_count(int bin_index);
-  /// Return the average number of samples in a given "radius" around current bin
-  virtual int local_sample_count(int radius);
-
   //// Share information between replicas, whatever it may be.
   virtual int replica_share();
-
-  /// Report the frequency at which this bias needs to communicate with replicas
-  virtual size_t replica_share_freq() const;
 
   /// Perform analysis tasks
   virtual void analyze() {}
@@ -140,86 +133,31 @@ public:
   /// Write the values of specific mutable properties to a string
   virtual std::string const get_state_params() const;
 
-  /// Check the name of the bias vs. the given string, set the matching_state flag accordingly
-  int check_matching_state(std::string const &conf);
-
   /// Read the values of specific mutable properties from a string
   virtual int set_state_params(std::string const &state_conf);
 
-  /// Write all mutable data not already written by get_state_params() to a formatted stream
+  /// Write all mutable data not already written by get_state_params()
   virtual std::ostream & write_state_data(std::ostream &os)
   {
     return os;
   }
 
-  /// Write all mutable data not already written by get_state_params() to an unformatted stream
-  virtual cvm::memory_stream & write_state_data(cvm::memory_stream &os)
-  {
-    return os;
-  }
-
-  /// Read all mutable data not already set by set_state_params() from a formatted stream
+  /// Read all mutable data not already set by set_state_params()
   virtual std::istream & read_state_data(std::istream &is)
   {
     return is;
   }
 
-  /// Read all mutable data not already set by set_state_params() from an unformatted stream
-  virtual cvm::memory_stream & read_state_data(cvm::memory_stream &is)
-  {
-    return is;
-  }
+  /// Read a keyword from the state data (typically a header)
+  /// \param Input stream
+  /// \param Keyword labeling the header block
+  std::istream & read_state_data_key(std::istream &is, char const *key);
 
-  /// Write a keyword header for a data sequence to a formatted stream
-  /// \param[in,out] os Output stream
-  /// \param[in] key  Keyword labeling the header block
-  /// \param[in] header  Whether this is the header of a multi-line segment vs a single line
-  std::ostream &write_state_data_key(std::ostream &os, std::string const &key, bool header = true);
+  /// Write the bias configuration to a state file or other stream
+  std::ostream & write_state(std::ostream &os);
 
-  /// Write a keyword header for a data sequence to an unformatted stream
-  /// \param[in,out] os Output stream
-  /// \param[in] key  Keyword labeling the header block
-  /// \param[in] header  Ignored
-  cvm::memory_stream &write_state_data_key(cvm::memory_stream &os, std::string const &key,
-                                           bool header = true);
-
-private:
-
-  /// Read a keyword header for a data sequence from a stream
-  /// \param[in,out] Input stream
-  /// \param[in] Keyword labeling the header block; an error will be raised if not matching
-  template <typename IST> IST &read_state_data_key_template_(IST &is, std::string const &key);
-
-public:
-
-  /// Read a keyword header for a data sequence from a formatted stream
-  /// \param[in,out] Input stream
-  /// \param[in] Keyword labeling the header block; an error will be raised if not matching
-  std::istream & read_state_data_key(std::istream &is, std::string const &key);
-
-  /// Read a keyword header for a data sequence from an unformatted stream
-  /// \param[in,out] Input stream
-  /// \param[in] Keyword labeling the header block; an error will be raised if not matching
-  cvm::memory_stream & read_state_data_key(cvm::memory_stream &is, std::string const &key);
-
-private:
-
-  /// Generic stream reading function (formatted and not)
-  template <typename IST> IST & read_state_template_(IST &is);
-
-public:
-
-  /// Write the bias configuration to a formatted stream
-  std::ostream &write_state(std::ostream &os);
-
-  /// Write the bias configuration to an unformatted stream
-  cvm::memory_stream & write_state(cvm::memory_stream &os);
-
-  /// Read the bias configuration from a formatted stream
+  /// Read the bias configuration from a restart file or other stream
   std::istream & read_state(std::istream &is);
-
-  /// Read the bias configuration from an unformatted stream
-  cvm::memory_stream & read_state(cvm::memory_stream &is);
 
   /// Write the bias state to a file with the given prefix
   int write_state_prefix(std::string const &prefix);
@@ -336,6 +274,8 @@ public:
   colvarbias_ti(char const *key);
   virtual ~colvarbias_ti();
 
+  virtual int clear_state_data();
+
   virtual int init(std::string const &conf);
   virtual int init_grids();
   virtual int update();
@@ -348,9 +288,7 @@ public:
   virtual std::string const get_state_params() const;
   virtual int set_state_params(std::string const &state_conf);
   virtual std::ostream & write_state_data(std::ostream &os);
-  virtual cvm::memory_stream & write_state_data(cvm::memory_stream &os);
   virtual std::istream & read_state_data(std::istream &is);
-  virtual cvm::memory_stream & read_state_data(cvm::memory_stream &is);
   virtual int write_output_files();
 
 protected:
@@ -359,10 +297,10 @@ protected:
   std::vector<colvarvalue> ti_system_forces;
 
   /// Averaged system forces
-  std::shared_ptr<colvar_grid_gradient> ti_avg_forces;
+  colvar_grid_gradient *ti_avg_forces;
 
   /// Histogram of sampled data
-  std::shared_ptr<colvar_grid_count> ti_count;
+  colvar_grid_count *ti_count;
 
   /// Because total forces may be from the last simulation step,
   /// store the index of the variables then

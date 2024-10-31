@@ -54,6 +54,6 @@ namespace ucl_opencl {
 #include "ucl_print.h"
 #undef UCL_PRINT_ALLOW
 
-} // namespace ucl_opencl
+} // namespace ucl_cudart
 
 #endif

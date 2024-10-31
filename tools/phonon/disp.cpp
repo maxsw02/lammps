@@ -53,7 +53,7 @@ void Phonon::pdisp()
 #ifdef UseSPG
    if (method == 1){
 #endif
-      while (true){
+      while (1){
          for (int i = 0; i < 3; ++i) qstr[i] = qend[i];
    
          printf("\nPlease input the start q-point in unit of B1->B3, q to exit [%g %g %g]: ", qstr[0], qstr[1], qstr[2]);
@@ -67,7 +67,7 @@ void Phonon::pdisp()
            qstr[2] = atof(strtok(NULL, " \t\n\r\f"));
          }
      
-         while ( true ){
+         while ( 1 ){
             printf("Please input the end q-point in unit of B1->B3: ");
             input->read_stdin(str);
             if (count_words(str) >= 3) break;
@@ -166,6 +166,8 @@ void Phonon::pdisp()
  
    delete []fname;
    delete qnodes;
+ 
+return;
 }
 
 /*----------------------------------------------------------------------------*/
